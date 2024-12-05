@@ -19,3 +19,17 @@ func (r *FileRepository) FileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
 }
+
+// DirExists checks if a directory already exists
+func (r *FileRepository) DirExists(dirname string) bool {
+	info, err := os.Stat(dirname)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return info.IsDir()
+}
+
+// MakeDir creates a new directory with the specified name
+func (r *FileRepository) MakeDir(dirname string) error {
+	return os.Mkdir(dirname, 0755)
+}

@@ -12,7 +12,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
-	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/service"
 )
 
@@ -38,7 +37,7 @@ func main() {
 	// File upload endpoint
 	router.HandleFunc("/upload", func(w http.ResponseWriter, r *http.Request) {
 		// Parse form data
-		err := r.ParseMultipartForm(10 << 20) // Max 10 MB
+		err := r.ParseMultipartForm(1 << 20) // 1MB
 		if err != nil {
 			http.Error(w, "Unable to parse form", http.StatusBadRequest)
 			return
@@ -52,7 +51,7 @@ func main() {
 		}
 		defer file.Close()
 
-		if !strings.HasSuffix(handler.Filename, ".csv") {
+		if !strings.HasSuffix(handler.Filename, ".csv") { // hanya boleh .csv
 			http.Error(w, "Only .csv files are allowed", http.StatusInternalServerError)
 			return
 		}
@@ -69,27 +68,31 @@ func main() {
 		parsedData, err := fileService.ProcessFile(fileContent)
 		if err != nil {
 			http.Error(w, "Error processing file", http.StatusInternalServerError)
+			log.Println("Error processing file:", err)
 			return
 		}
 
-		queries := []string{
-			"Find the least electricity usage appliance.",
-			"Find the most electricity usage appliance.",
-		}
-
-		// analisi data
-		answer, err := aiService.AnalyzeFile(parsedData, queries, token)
-		if err != nil {
-			http.Error(w, "Failed to analyze data: "+err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		response := model.Response{Status: "success", Answer: answer}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		}
+		json.NewEncoder(w).Encode(parsedData)
+
+		// queries := []string{
+		// 	"Find the least electricity usage appliance.",
+		// 	"Find the most electricity usage appliance.",
+		// }
+
+		// // analisi data
+		// answer, err := aiService.AnalyzeFile(parsedData, queries, token)
+		// if err != nil {
+		// 	http.Error(w, "Failed to analyze data: "+err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		// response := model.Response{Status: "success", Answer: answer}
+		// w.Header().Set("Content-Type", "application/json")
+		// w.WriteHeader(http.StatusOK)
+		// if err := json.NewEncoder(w).Encode(&response); err != nil {
+		// 	http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		// }
 
 	}).Methods("POST")
 
@@ -100,7 +103,7 @@ func main() {
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3000"}, // Allow your React app's origin
+		AllowedOrigins: []string{"*"}, // Allow your React app's origin
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	}).Handler(router)

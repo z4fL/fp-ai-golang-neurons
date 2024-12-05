@@ -1,10 +1,14 @@
 package service
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
+	"github.com/z4fL/fp-ai-golang-neurons/utility"
 )
 
 type HTTPClient interface {
@@ -16,7 +20,64 @@ type AIService struct {
 }
 
 func (s *AIService) AnalyzeData(table map[string][]string, query, token string) (string, error) {
-	return "", nil
+	url := "https://api-inference.huggingface.co/models/google/tapas-base-finetuned-wtq"
+	requestData := &model.TapasRequest{
+		Inputs: model.Inputs{
+			Table: table,
+			Query: query,
+		},
+	}
+
+	body, err := json.Marshal(*requestData)
+	if err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-wait-for-model", "true")
+
+	res, err := s.Client.Do(req)
+	if err != nil {
+		return "", err
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", errors.New("failed to get a valid response from the AI model")
+	}
+
+	var tapasRes model.TapasResponse
+	if err := json.NewDecoder(res.Body).Decode(&tapasRes); err != nil {
+		return "", err
+	}
+
+	processor := utility.TapasProcessor{
+		Cells: &tapasRes.Cells,
+	}
+
+	var answer string
+
+	if tapasRes.Aggregator == "COUNT" {
+		count, list := processor.Count()
+		answer = fmt.Sprintf("Count: %d, List: %v", count, list)
+	} else if tapasRes.Aggregator == "SUM" {
+		sum := processor.Sum()
+		answer = fmt.Sprintf("Sum: %f", sum)
+	} else if tapasRes.Aggregator == "AVERAGE" {
+		avg := processor.Average()
+		answer = fmt.Sprintf("Sum: %f", avg)
+	} else if tapasRes.Aggregator == "NONE" {
+		answer = tapasRes.Answer
+	}
+
+	return answer, nil
 }
 
 func (s *AIService) AnalyzeFile(table map[string][]string, queries []string, token string) (string, error) {
