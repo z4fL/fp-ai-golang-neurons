@@ -1,7 +1,13 @@
 import React from "react";
+import { useState } from "react";
+import ModalUpload from "./components/ModalUpload";
 
 const App = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+
   return (
+    <>
     <div className="flex flex-col h-screen bg-slate-50 font-noto">
       {/* Header */}
       <header className="bg-slate-800 text-white p-4 text-center font-bold">
@@ -41,6 +47,7 @@ const App = () => {
           <button
             className="p-2 bg-lime-200 rounded-md hover:bg-lime-300"
             title="Upload File"
+            onClick={() => setIsModalOpen(true)}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -81,6 +88,8 @@ const App = () => {
         </div>
       </footer>
     </div>
+    <ModalUpload isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+    </>
   );
 };
 
