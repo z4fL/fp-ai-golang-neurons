@@ -37,10 +37,10 @@ func (tp *TapasProcessor) Sum() float64 {
 }
 
 func (tp *TapasProcessor) Average() float64 {
-	total := 0
+	total := 0.0
 	count := 0
 	for _, cell := range *tp.Cells {
-		if num, err := strconv.Atoi(cell); err == nil {
+		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			total += num
 			count++
 		}
@@ -51,11 +51,11 @@ func (tp *TapasProcessor) Average() float64 {
 	return float64(total) / float64(count)
 }
 
-func (tp *TapasProcessor) Max() (int, error) {
-	maxValue := 0
+func (tp *TapasProcessor) Max() (float64, error) {
+	maxValue := 0.0
 	found := false
 	for _, cell := range *tp.Cells {
-		if num, err := strconv.Atoi(cell); err == nil {
+		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			if !found || num > maxValue {
 				maxValue = num
 				found = true
@@ -68,11 +68,11 @@ func (tp *TapasProcessor) Max() (int, error) {
 	return maxValue, nil
 }
 
-func (tp *TapasProcessor) Min() (int, error) {
-	minValue := 0
+func (tp *TapasProcessor) Min() (float64, error) {
+	minValue := 0.0
 	found := false
 	for _, cell := range *tp.Cells {
-		if num, err := strconv.Atoi(cell); err == nil {
+		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			if !found || num < minValue {
 				minValue = num
 				found = true

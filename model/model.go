@@ -5,6 +5,11 @@ type Response struct {
 	Answer string `json:"answer"`
 }
 
+type ChatRequest struct {
+	Query        string  `json:"query"`
+	PreviousChat Message `json:"prevChat"`
+}
+
 type Inputs struct {
 	Table map[string][]string `json:"table"`
 	Query string              `json:"query"`
@@ -34,9 +39,9 @@ type PhiRequest struct {
 }
 
 type Choice struct {
-	Message Message
+	Message Message `json:"message"`
 }
 
 type PhiResponse struct {
-	Choices []Choice `json:"choises"`
+	Choices []Choice `json:"choices"`
 }
