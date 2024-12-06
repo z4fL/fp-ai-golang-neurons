@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 
-const ModalUpload = ({ isOpen, onClose }) => {
-  const [file, setFile] = useState(null);
+const ModalUpload = ({ isOpen, onClose, handleUpload, file, setFile }) => {
   const [isFocused, setIsFocused] = useState(false); // state untuk kontrol fokus area drop
+  const [isFileValid, setIsFileValid] = useState(true);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -15,18 +15,37 @@ const ModalUpload = ({ isOpen, onClose }) => {
 
   const handleDragOver = (e) => {
     e.preventDefault();
+    const draggedFile = e.dataTransfer.items[0];
+
+    if (
+      draggedFile &&
+      draggedFile.kind === "file" &&
+      draggedFile.type === "text/csv"
+    ) {
+      setIsFileValid(true);
+    } else {
+      setIsFileValid(false);
+    }
 
     setIsFocused(true);
   };
 
   const handleDragLeave = () => {
     setIsFocused(false);
+    setIsFileValid(true);
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    setFile(droppedFile);
+
+    if (droppedFile && droppedFile.type === "text/csv") {
+      setFile(droppedFile);
+    } else {
+      console.log("only .csv");
+    }
+
+    setIsFileValid(true); // Reset validasi
     setIsFocused(false); // Hapus fokus setelah file di-drop
   };
 
@@ -35,35 +54,51 @@ const ModalUpload = ({ isOpen, onClose }) => {
     handleRemoveFile();
   };
 
+  const handleUploadFile = () => {
+    handleUpload(file);
+
+    handleCloseModal();
+  };
+
   return (
     isOpen && (
       <div className="fixed inset-0 bg-black bg-opacity-25 flex justify-center items-center z-50">
         <div className="bg-white rounded-md shadow-xl w-full max-w-screen-md p-6 flex flex-col">
           {/* Drag and Drop Area */}
-          <div
-            className={`border-dashed border-2 py-12 flex flex-col justify-center items-center
-              ${isFocused ? "border-lime-500 bg-lime-100" : "border-gray-400"}`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            <p className="mb-3 text-gray-700">
-              Drag and drop your file here or click the button below
-            </p>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className="hidden"
-              id="file-input"
-              name="file"
-            />
-            <label
-              htmlFor="file-input"
-              className="px-4 py-2 bg-lime-600 text-white rounded-md cursor-pointer hover:bg-lime-500"
+          {!file && (
+            <div
+              className={`border-dashed border-2 py-12 flex flex-col justify-center items-center
+              ${
+                isFocused
+                  ? isFileValid
+                    ? "border-lime-500 bg-lime-100"
+                    : "border-red-500 bg-red-100"
+                  : "border-gray-400"
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
             >
-              Upload File
-            </label>
-          </div>
+              <p className="text-gray-700">
+                Drag and drop your file here or click the button below
+              </p>
+              <p className="mb-3 text-sm">Only .csv file can be uploaded</p>
+              <input
+                type="file"
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-input"
+                name="file"
+                accept="text/csv"
+              />
+              <label
+                htmlFor="file-input"
+                className="px-4 py-2 bg-lime-600 text-white rounded-md cursor-pointer hover:bg-lime-500"
+              >
+                Upload File
+              </label>
+            </div>
+          )}
 
           {/* Display selected file */}
           {file && (
@@ -81,7 +116,7 @@ const ModalUpload = ({ isOpen, onClose }) => {
           {/* Footer Buttons */}
           <div className="mt-6 flex justify-end space-x-4">
             <button
-              onClick={() => console.log("File uploaded: ", file)}
+              onClick={handleUploadFile}
               className="px-4 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-500"
             >
               Upload Now
