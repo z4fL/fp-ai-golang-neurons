@@ -1,9 +1,12 @@
-import React from 'react'
+import React from "react";
+import Markdown from "react-markdown";
 
-const ChatAI = () => {
+const ChatAI = ({ content }) => {
   return (
-    <div>ChatAI</div>
-  )
-}
+    <div className="prose prose-base">
+      <Markdown>{content}</Markdown>
+    </div>
+  );
+};
 
-export default ChatAI
+export default ChatAI;
