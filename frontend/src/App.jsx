@@ -1,136 +1,116 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ModalUpload from "./components/ModalUpload";
 import ChatAI from "./components/ChatAI";
 import ChatUser from "./components/ChatUser";
+import { useCallback } from "react";
 
 const App = () => {
+  const [file, setFile] = useState(null); // file user
+  const [query, setQuery] = useState(""); // query user
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [file, setFile] = useState(null);
-  const [query, setQuery] = useState("");
-  const [request, setRequest] = useState("");
-  const [chat, setChat] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    setChat([
-      {
-        id: 1,
-        role: "assistant",
-        content: "Halo, ada yang bisa aku bantu?",
-        type: "text",
-      },
-      {
-        id: 2,
-        role: "user",
-        content: "Iya, aku butuh bantuan buat layout.",
-        type: "text",
-      },
-      {
-        id: 3,
-        role: "assistant",
-        content:
-          "Layout adalah cara di mana elemen-elemen disusun di dalam sebuah halaman web atau aplikasi. Ini mencakup penempatan, ukuran, dan tampilan elemen-elemen tersebut untuk menciptakan antarmuka pengguna yang intuitif dan menarik.",
-        type: "text",
-      },
-    ]);
-  }, []);
+  const [chatHistory, setChatHistory] = useState([
+    {
+      id: 1,
+      role: "assistant",
+      content: "Halo, ada yang bisa aku bantu?",
+    },
+  ]);
 
-  const handleUploadFile = async () => {
-    if (!file) return;
-
-    setChat((prevChat) => [
-      ...prevChat,
-      {
-        id: prevChat.length + 1,
-        role: "user",
-        type: "file",
-        name: file.name,
-        size: file.size,
-      },
-    ]);
-
-    const formData = new FormData();
-    formData.append("file", file);
+  const handleResponse = async () => {
+    setIsLoading(true);
+    const lastChat = chatHistory[chatHistory.length - 1];
 
     try {
-      // Dummy promise to simulate file upload
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            ok: true,
-            json: () => ({
-              status: "success",
-              answer:
-                "From the provided data, here are the Least Electricity: TV and the Most Electricity: EVCar.",
-            }),
-          });
-        }, 1000);
-      });
+      const res =
+        lastChat.type === "text"
+          ? await handleChat()
+          : await handleUploadFile();
 
-      if (response.ok) {
-        const data = await response.json();
-        setChat((prevChat) => [
-          ...prevChat,
-          {
-            id: prevChat.length + 1,
-            role: "assistant",
-            content: data.answer,
-            type: "text",
-          },
-        ]);
-      } else {
-        console.error("File upload failed");
-      }
+      if (!res.ok) throw new Error("Failed to fetch response");
+
+      const data = await res.json();
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        {
+          id: prevChat.length + 1,
+          role: "assistant",
+          content: data.answer,
+          type: "text",
+        },
+      ]);
+
+      setFile(null);
     } catch (error) {
       console.error("Error uploading file:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleChat = async () => {
-    setChat((prevChat) => [
-      ...prevChat,
-      {
-        id: prevChat.length + 1,
-        role: "user",
-        content: query,
-        type: "text",
-      },
-    ]);
-
-    setQuery("");
-
-    try {
-      // Dummy promise to simulate chat
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            ok: true,
-            json: () => ({
-              status: "success",
-              answer:
-                "The EVCar, or Electric Vehicle Charger, uses more electricity compared to the other devices because it is designed to draw a high amount of power for a specific purpose. Electric vehicles require substantial electrical charge to run their batteries, and charging these batteries consumes a significant amount of electricity.\n\nHere's a detailed breakdown of why it uses more electricity:\n\n1. Battery size: Electric cars typically have larger batteries than other household electronic devices. The battery is the main energy storage component in an EV, and its size directly corresponds to the electricity the vehicle will consume while charging. In essence, the larger the battery, the more electricity required to fully charge it.\n\n2. Charging Power: Different EVs have varying charging power requirements (measured in kW), and chargers need to match this specification to charge an EV efficiently. While some devices may consume low-power electricity, EV chargers require a more substantial power flow to charge the car's battery quickly.\n\n3. Charge Time: The time required to charge an electric vehicle greatly depends on the battery's capacity and the charging power. EV charging times can range from several hours to overnight (possibly up to 22 hours for some models). During this time, the EV charger continuously operates, consuming a steady flow of electricity.\n\n4. Energy Demand: Due to the concept of duty cycles in electronics — where devices operate at their peak capacity over longer periods — the constant operation of the EV charger signifies a higher energy demand compared to devices like mobile phones, laptops, or even TVs which may have periods of low or no usage.\n\nIn summary, the high energy consumption of EV chargers is a direct outcome of their purpose: they must supply a substantial amount of electricity over a sustained period to recharge electric vehicle batteries. This energy demand far exceeds that of other more conventional electronic devices used in a household setting.",
-            }),
-          });
-        }, 1000);
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setChat((prevChat) => [
-          ...prevChat,
-          {
-            id: prevChat.length + 1,
-            role: "assistant",
-            content: data.answer,
-            type: "text",
-          },
-        ]);
-      } else {
-        console.error("File upload failed");
-      }
-    } catch (error) {
-      console.error("Error uploading file:", error);
+  useEffect(() => {
+    if (
+      chatHistory.length &&
+      chatHistory[chatHistory.length - 1].role === "user"
+    ) {
+      handleResponse();
     }
+  }, [chatHistory]);
+
+  const handleChat = async () => {
+    const lastChat = chatHistory[chatHistory.length - 1];
+    const previousChat = chatHistory[chatHistory.length - 2] || "";
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log("Request Payload (Chat):", { lastChat, previousChat });
+        resolve({
+          ok: true,
+          json: () => ({
+            status: "success",
+            answer:
+              "The EVCar, or Electric Vehicle Charger, uses more electricity compared to the other devices because it is designed to draw a high amount of power for a specific purpose. Electric vehicles require substantial electrical charge to run their batteries, and charging these batteries consumes a significant amount of electricity.\n\nHere's a detailed breakdown of why it uses more electricity:\n\n1. Battery size: Electric cars typically have larger batteries than other household electronic devices. The battery is the main energy storage component in an EV, and its size directly corresponds to the electricity the vehicle will consume while charging. In essence, the larger the battery, the more electricity required to fully charge it.\n\n2. Charging Power: Different EVs have varying charging power requirements (measured in kW), and chargers need to match this specification to charge an EV efficiently. While some devices may consume low-power electricity, EV chargers require a more substantial power flow to charge the car's battery quickly.\n\n3. Charge Time: The time required to charge an electric vehicle greatly depends on the battery's capacity and the charging power. EV charging times can range from several hours to overnight (possibly up to 22 hours for some models). During this time, the EV charger continuously operates, consuming a steady flow of electricity.\n\n4. Energy Demand: Due to the concept of duty cycles in electronics — where devices operate at their peak capacity over longer periods — the constant operation of the EV charger signifies a higher energy demand compared to devices like mobile phones, laptops, or even TVs which may have periods of low or no usage.\n\nIn summary, the high energy consumption of EV chargers is a direct outcome of their purpose: they must supply a substantial amount of electricity over a sustained period to recharge electric vehicle batteries. This energy demand far exceeds that of other more conventional electronic devices used in a household setting.",
+          }),
+        });
+      }, 1000);
+    });
+  };
+
+  const handleUploadFile = () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log("Request Payload (File):", {
+          file,
+        });
+        resolve({
+          ok: true,
+          json: () => ({
+            status: "success",
+            answer:
+              "From the provided data, here are the Least Electricity: TV and the Most Electricity: EVCar.",
+          }),
+        });
+      }, 1000);
+    });
+  };
+
+  const getResponse = (type) => {
+    if (type === "text") {
+      setQuery("");
+    } else {
+      if (!file) return;
+    }
+
+    const newChat = {
+      id: chatHistory.length + 1,
+      role: "user",
+      type,
+      content: type === "text" ? query : { name: file?.name, size: file?.size },
+    };
+
+    setChatHistory((prevchat) => [...prevchat, newChat]);
   };
 
   return (
@@ -152,19 +132,19 @@ const App = () => {
                 id="chat-list"
                 className="chat w-full max-w-screen-md flex flex-col space-y-4"
               >
-                {chat.map((value) => (
+                {chatHistory.map((chat) => (
                   <div
-                    key={value.id}
+                    key={chat.id}
                     className={`p-3 rounded-md ${
-                      value.role === "assistant"
+                      chat.role === "assistant"
                         ? "self-start bg-slate-100 text-slate-900"
                         : "self-end bg-gray-800 text-white"
                     }`}
                   >
-                    {value.role === "assistant" ? (
-                      <ChatAI content={value.content} />
+                    {chat.role === "assistant" ? (
+                      <ChatAI content={chat.content} />
                     ) : (
-                      <ChatUser value={value} type={value.type} />
+                      <ChatUser content={chat.content} type={chat.type} />
                     )}
                   </div>
                 ))}
@@ -206,8 +186,8 @@ const App = () => {
               placeholder="Ketik pesan..."
               className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 placeholder:text-slate-500"
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleChat();
+                if (e.key === "Enter" && query.trim() && !isLoading) {
+                  getResponse("text");
                 }
               }}
             />
@@ -215,7 +195,8 @@ const App = () => {
             {/* Send Button */}
             <button
               className="bg-lime-400 px-3 py-2 rounded-md hover:bg-lime-500"
-              onClick={handleChat}
+              onClick={() => getResponse("text")}
+              disabled={!query.trim() || isLoading}
             >
               <svg
                 className="w-6 h-6 text-slate-900"
@@ -236,7 +217,7 @@ const App = () => {
         onClose={() => setIsModalOpen(false)}
         file={file}
         setFile={setFile}
-        handleUpload={handleUploadFile}
+        getResponse={() => getResponse("file")}
       />
     </>
   );

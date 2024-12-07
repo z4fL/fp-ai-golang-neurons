@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const ModalUpload = ({ isOpen, onClose, handleUpload, file, setFile }) => {
+const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
   const [isFocused, setIsFocused] = useState(false); // state untuk kontrol fokus area drop
   const [isFileValid, setIsFileValid] = useState(true);
 
@@ -51,11 +51,10 @@ const ModalUpload = ({ isOpen, onClose, handleUpload, file, setFile }) => {
 
   const handleCloseModal = () => {
     onClose();
-    handleRemoveFile();
   };
 
   const handleUploadFile = () => {
-    handleUpload(file);
+    getResponse();
 
     handleCloseModal();
   };
