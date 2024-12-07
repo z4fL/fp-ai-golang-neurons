@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ModalUpload from "./components/ModalUpload";
-import ChatAI from "./components/ChatAI";
-import ChatUser from "./components/ChatUser";
-import { useCallback } from "react";
+import ChatList from "./components/ChatList";
 
 const App = () => {
   const [file, setFile] = useState(null); // file user
@@ -51,6 +49,8 @@ const App = () => {
   };
 
   useEffect(() => {
+    console.log("chatHistory",chatHistory);
+    
     if (
       chatHistory.length &&
       chatHistory[chatHistory.length - 1].role === "user"
@@ -122,36 +122,7 @@ const App = () => {
         </header>
 
         {/* Chat Area */}
-        <main
-          className="flex-1 overflow-y-auto"
-          style={{ scrollbarGutter: "stable both-edges" }}
-        >
-          <div className="py-4">
-            <div className="flex justify-center">
-              <div
-                id="chat-list"
-                className="chat w-full max-w-screen-md flex flex-col space-y-4"
-              >
-                {chatHistory.map((chat) => (
-                  <div
-                    key={chat.id}
-                    className={`p-3 rounded-md ${
-                      chat.role === "assistant"
-                        ? "self-start bg-slate-100 text-slate-900"
-                        : "self-end bg-gray-800 text-white"
-                    }`}
-                  >
-                    {chat.role === "assistant" ? (
-                      <ChatAI content={chat.content} />
-                    ) : (
-                      <ChatUser content={chat.content} type={chat.type} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </main>
+        <ChatList chatList={chatHistory} />
 
         {/* Input Area */}
         <footer className="w-full max-w-screen-md p-4 mb-4 mx-auto bg-gray-200 rounded-lg flex justify-center">
