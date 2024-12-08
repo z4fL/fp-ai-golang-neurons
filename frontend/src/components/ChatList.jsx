@@ -1,9 +1,9 @@
 import React, { useState, useRef } from "react";
 import { useEffect } from "react";
-import CursorSVG from "./svg/Cursor";
-import Markdown from "react-markdown";
+import UserChat from "./Chat/UserChat";
+import AssistantChat from "./Chat/AssistantChat";
 
-const ChatList = ({ chatList }) => {
+const ChatList = ({ chatList, setIsLoading, reloadChat }) => {
   const [displayResponse, setDisplayResponse] = useState("");
   const [isCompletedTyping, setIsCompletedTyping] = useState(false);
 
@@ -19,15 +19,20 @@ const ChatList = ({ chatList }) => {
     setIsCompletedTyping(false);
 
     let i = 0;
-    const responseAssistant = chatList[chatList.length - 1].content;
+    const responseAssistant = chatList[chatList.length - 1];
+    if (responseAssistant.role !== "assistant") {
+      return;
+    }
+    const assistantContent = responseAssistant.content;
 
     const intervalId = setInterval(() => {
-      setDisplayResponse(responseAssistant.slice(0, i));
+      setDisplayResponse(assistantContent.slice(0, i));
       i++;
 
-      if (i > responseAssistant.length) {
+      if (i > assistantContent.length) {
         clearInterval(intervalId);
         setIsCompletedTyping(true);
+        setIsLoading(false);
       }
     }, 5);
 
@@ -48,7 +53,7 @@ const ChatList = ({ chatList }) => {
     const isAtBottom =
       container.scrollHeight - container.scrollTop === container.clientHeight;
 
-    setIsAutoScrollEnabled(isAtBottom)
+    setIsAutoScrollEnabled(isAtBottom);
   };
 
   return (
@@ -64,52 +69,21 @@ const ChatList = ({ chatList }) => {
             id="chat-list"
             className="chat w-full max-w-screen-md flex flex-col space-y-4"
           >
-            {chatList.map((chat, chatId) => (
-              <div
-                key={chatId}
-                className={`p-3 rounded-md ${
-                  chat.role === "assistant"
-                    ? "self-start bg-slate-100 text-slate-900"
-                    : "self-end bg-gray-800 text-white"
-                }`}
-              >
-                {chat.role === "user" && (
-                  <div>
-                    {chat.type === "text" ? (
-                      <p>{chat.content}</p>
-                    ) : (
-                      <>
-                        <p>{chat.content.name}</p>
-                        <p className="text-sm text-slate-200">
-                          {(chat.content.size / 1024).toFixed(2)} KB
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {chat.role === "assistant" &&
-                  chatId !== chatList.length - 1 && (
-                    <div className="prose prose-base">
-                      <Markdown>{chat.content}</Markdown>
-                    </div>
-                  )}
-
-                {chat.role === "assistant" &&
-                  chatId === chatList.length - 1 && (
-                    <div className="prose prose-base">
-                      {!isCompletedTyping ? (
-                        <>
-                          {displayResponse}
-                          <CursorSVG />
-                        </>
-                      ) : (
-                        <Markdown>{displayResponse}</Markdown>
-                      )}
-                    </div>
-                  )}
-              </div>
-            ))}
+            {chatList.map((chat, chatId) =>
+              chat.role === "user" ? (
+                <UserChat key={chatId} chat={chat} />
+              ) : (
+                <AssistantChat
+                  key={chatId}
+                  chat={chat}
+                  chatId={chatId}
+                  chatListLength={chatList.length}
+                  isCompletedTyping={isCompletedTyping}
+                  displayResponse={displayResponse}
+                  reloadChat={() => reloadChat()}
+                />
+              )
+            )}
             <div ref={bottomRef} />
           </div>
         </div>

@@ -30,6 +30,8 @@ const App = () => {
       if (!res.ok) throw new Error("Failed to fetch response");
 
       const data = await res.json();
+      setChatHistory((prevChat) => prevChat.slice(0, -1));
+
       setChatHistory((prevChat) => [
         ...prevChat,
         {
@@ -42,19 +44,39 @@ const App = () => {
 
       setFile(null);
     } catch (error) {
-      console.error("Error uploading file:", error);
-    } finally {
       setIsLoading(false);
+      setChatHistory((prevChat) => prevChat.slice(0, -1));
+
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        {
+          id: prevChat.length + 1,
+          role: "assistant",
+          content: "ERROR",
+          type: "error",
+        },
+      ]);
+      console.error(error);
     }
   };
 
   useEffect(() => {
-    console.log("chatHistory",chatHistory);
-    
+    console.log("chatHistory", chatHistory);
+
     if (
       chatHistory.length &&
       chatHistory[chatHistory.length - 1].role === "user"
     ) {
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        {
+          id: prevChat.length + 1,
+          role: "assistant",
+          content: "LOADING...",
+          type: "text",
+        },
+      ]);
+
       handleResponse();
     }
   }, [chatHistory]);
@@ -63,18 +85,23 @@ const App = () => {
     const lastChat = chatHistory[chatHistory.length - 1];
     const previousChat = chatHistory[chatHistory.length - 2] || "";
 
+    const payload =
+      chatHistory[chatHistory.length - 2].id === 1
+        ? { lastChat }
+        : { lastChat, previousChat };
+
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log("Request Payload (Chat):", { lastChat, previousChat });
+        console.log("Request Payload (Chat):", payload);
         resolve({
-          ok: true,
+          ok: false,
           json: () => ({
             status: "success",
             answer:
               "The EVCar, or Electric Vehicle Charger, uses more electricity compared to the other devices because it is designed to draw a high amount of power for a specific purpose. Electric vehicles require substantial electrical charge to run their batteries, and charging these batteries consumes a significant amount of electricity.\n\nHere's a detailed breakdown of why it uses more electricity:\n\n1. Battery size: Electric cars typically have larger batteries than other household electronic devices. The battery is the main energy storage component in an EV, and its size directly corresponds to the electricity the vehicle will consume while charging. In essence, the larger the battery, the more electricity required to fully charge it.\n\n2. Charging Power: Different EVs have varying charging power requirements (measured in kW), and chargers need to match this specification to charge an EV efficiently. While some devices may consume low-power electricity, EV chargers require a more substantial power flow to charge the car's battery quickly.\n\n3. Charge Time: The time required to charge an electric vehicle greatly depends on the battery's capacity and the charging power. EV charging times can range from several hours to overnight (possibly up to 22 hours for some models). During this time, the EV charger continuously operates, consuming a steady flow of electricity.\n\n4. Energy Demand: Due to the concept of duty cycles in electronics — where devices operate at their peak capacity over longer periods — the constant operation of the EV charger signifies a higher energy demand compared to devices like mobile phones, laptops, or even TVs which may have periods of low or no usage.\n\nIn summary, the high energy consumption of EV chargers is a direct outcome of their purpose: they must supply a substantial amount of electricity over a sustained period to recharge electric vehicle batteries. This energy demand far exceeds that of other more conventional electronic devices used in a household setting.",
           }),
         });
-      }, 1000);
+      }, 5000);
     });
   };
 
@@ -92,14 +119,14 @@ const App = () => {
               "From the provided data, here are the Least Electricity: TV and the Most Electricity: EVCar.",
           }),
         });
-      }, 1000);
+      }, 5000);
     });
   };
 
   const getResponse = (type) => {
     if (type === "text") {
       setQuery("");
-    } else {
+    } else if (type === "file") {
       if (!file) return;
     }
 
@@ -113,6 +140,12 @@ const App = () => {
     setChatHistory((prevchat) => [...prevchat, newChat]);
   };
 
+  const reloadChat = () => {
+    if (chatHistory[chatHistory.length - 1].type === "error") {
+      setChatHistory((prevChat) => prevChat.slice(0, -1));
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col h-screen bg-slate-50 font-noto">
@@ -122,7 +155,11 @@ const App = () => {
         </header>
 
         {/* Chat Area */}
-        <ChatList chatList={chatHistory} />
+        <ChatList
+          chatList={chatHistory}
+          setIsLoading={setIsLoading}
+          reloadChat={reloadChat}
+        />
 
         {/* Input Area */}
         <footer className="w-full max-w-screen-md p-4 mb-4 mx-auto bg-gray-200 rounded-lg flex justify-center">
@@ -165,7 +202,9 @@ const App = () => {
 
             {/* Send Button */}
             <button
-              className="bg-lime-400 px-3 py-2 rounded-md hover:bg-lime-500"
+              className={`bg-lime-400 px-3 py-2 rounded-md hover:bg-lime-500 ${
+                isLoading && "disabled:bg-lime-700"
+              }`}
               onClick={() => getResponse("text")}
               disabled={!query.trim() || isLoading}
             >

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
   const [isFocused, setIsFocused] = useState(false); // state untuk kontrol fokus area drop
@@ -8,6 +8,10 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
   };
+
+  useEffect(() => {
+    console.log("file: ", file);
+  }, [file]);
 
   const handleRemoveFile = () => {
     setFile(null);
@@ -102,7 +106,10 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
           {/* Display selected file */}
           {file && (
             <div className="mt-4 bg-gray-100 p-3 rounded-md flex justify-between items-center">
-              <span>{file.name}</span>
+              <div className="flex flex-col">
+              <span className="text-ellipsis overflow-hidden">{file.name}</span>
+              <span>{(file.size / 1024).toFixed(2)} KB</span>
+              </div>
               <button
                 onClick={handleRemoveFile}
                 className="text-red-500 hover:underline"
@@ -116,12 +123,18 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
           <div className="mt-6 flex justify-end space-x-4">
             <button
               onClick={handleUploadFile}
-              className="px-4 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-500"
+              className={`px-4 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-500 ${
+                !file && "disabled:bg-lime-700"
+              }`}
+              disabled={file ? false : true}
             >
-              Upload Now
+              Upload and Analyze
             </button>
             <button
-              onClick={handleCloseModal}
+              onClick={() => {
+                handleCloseModal();
+                setFile(null);
+              }}
               className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
             >
               Cancel
