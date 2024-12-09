@@ -9,10 +9,6 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
     setFile(selectedFile);
   };
 
-  useEffect(() => {
-    console.log("file: ", file);
-  }, [file]);
-
   const handleRemoveFile = () => {
     setFile(null);
   };
@@ -107,8 +103,10 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
           {file && (
             <div className="mt-4 bg-gray-100 p-3 rounded-md flex justify-between items-center">
               <div className="flex flex-col">
-              <span className="text-ellipsis overflow-hidden">{file.name}</span>
-              <span>{(file.size / 1024).toFixed(2)} KB</span>
+                <span className="text-ellipsis overflow-hidden">
+                  {file.name}
+                </span>
+                <span>{(file.size / 1024).toFixed(2)} KB</span>
               </div>
               <button
                 onClick={handleRemoveFile}

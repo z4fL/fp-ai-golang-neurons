@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import ModalUpload from "./components/ModalUpload";
 import ChatList from "./components/ChatList";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 const App = () => {
   const [file, setFile] = useState(null); // file user
@@ -8,6 +10,7 @@ const App = () => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   const [chatHistory, setChatHistory] = useState([
     {
@@ -27,7 +30,10 @@ const App = () => {
           ? await handleChat()
           : await handleUploadFile();
 
-      if (!res.ok) throw new Error("Failed to fetch response");
+      if (!res.ok) {
+        setIsError(true);
+        throw new Error("Failed to fetch response");
+      }
 
       const data = await res.json();
       setChatHistory((prevChat) => prevChat.slice(0, -1));
@@ -56,13 +62,12 @@ const App = () => {
           type: "error",
         },
       ]);
-      console.error(error);
+
+      setIsError(true);
     }
   };
 
   useEffect(() => {
-    console.log("chatHistory", chatHistory);
-
     if (
       chatHistory.length &&
       chatHistory[chatHistory.length - 1].role === "user"
@@ -85,16 +90,29 @@ const App = () => {
     const lastChat = chatHistory[chatHistory.length - 1];
     const previousChat = chatHistory[chatHistory.length - 2] || "";
 
-    const payload =
-      chatHistory[chatHistory.length - 2].id === 1
-        ? { lastChat }
-        : { lastChat, previousChat };
+    let payload = {};
+
+    let queryTapas = lastChat.content;
+
+    // Cek jika chat terakhir berisi "/file"
+    if (queryTapas.includes("/file")) {
+      queryTapas = queryTapas.replace("/file", "").trim();
+    }
+
+    payload =
+      chatHistory[chatHistory.length - 2].id === 1 || payload.type === "tapas"
+        ? { type: "tapas", query: queryTapas }
+        : {
+            type: "phi",
+            query: lastChat.content,
+            prevChat: previousChat.content,
+          };
 
     return new Promise((resolve) => {
+      console.log("Request Payload (Chat):\n", payload);
       setTimeout(() => {
-        console.log("Request Payload (Chat):", payload);
         resolve({
-          ok: false,
+          ok: true,
           json: () => ({
             status: "success",
             answer:
@@ -107,10 +125,10 @@ const App = () => {
 
   const handleUploadFile = () => {
     return new Promise((resolve) => {
+      console.log("Request Payload (File):\n", {
+        file,
+      });
       setTimeout(() => {
-        console.log("Request Payload (File):", {
-          file,
-        });
         resolve({
           ok: true,
           json: () => ({
@@ -124,11 +142,7 @@ const App = () => {
   };
 
   const getResponse = (type) => {
-    if (type === "text") {
-      setQuery("");
-    } else if (type === "file") {
-      if (!file) return;
-    }
+    if (type === "file") if (!file) return;
 
     const newChat = {
       id: chatHistory.length + 1,
@@ -137,6 +151,9 @@ const App = () => {
       content: type === "text" ? query : { name: file?.name, size: file?.size },
     };
 
+    if (type === "text") setQuery("");
+
+    setIsLoading(true);
     setChatHistory((prevchat) => [...prevchat, newChat]);
   };
 
@@ -150,9 +167,7 @@ const App = () => {
     <>
       <div className="flex flex-col h-screen bg-slate-50 font-noto">
         {/* Header */}
-        <header className="bg-slate-800 text-white p-4 text-center font-bold">
-          Chatbot Smart Home Energy Management
-        </header>
+        <Header />
 
         {/* Chat Area */}
         <ChatList
@@ -162,65 +177,14 @@ const App = () => {
         />
 
         {/* Input Area */}
-        <footer className="w-full max-w-screen-md p-4 mb-4 mx-auto bg-gray-200 rounded-lg flex justify-center">
-          <div className="w-full flex items-center space-x-2">
-            {/* Upload File Button */}
-            <button
-              className="p-2 bg-lime-200 rounded-md hover:bg-lime-300"
-              title="Upload File"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5 text-slate-900"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3 16.5V19a2 2 0 002 2h14a2 2 0 002-2v-2.5M16 9l-4-4m0 0l-4 4m4-4v12"
-                />
-              </svg>
-            </button>
-
-            {/* Input Field */}
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ketik pesan..."
-              className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 placeholder:text-slate-500"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && query.trim() && !isLoading) {
-                  getResponse("text");
-                }
-              }}
-            />
-
-            {/* Send Button */}
-            <button
-              className={`bg-lime-400 px-3 py-2 rounded-md hover:bg-lime-500 ${
-                isLoading && "disabled:bg-lime-700"
-              }`}
-              onClick={() => getResponse("text")}
-              disabled={!query.trim() || isLoading}
-            >
-              <svg
-                className="w-6 h-6 text-slate-900"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 512 512"
-              >
-                <path
-                  fill="currentColor"
-                  d="M498.1 5.6c10.1 7 15.4 19.1 13.5 31.2l-64 416c-1.5 9.7-7.4 18.2-16 23s-18.9 5.4-28 1.6L284 427.7l-68.5 74.1c-8.9 9.7-22.9 12.9-35.2 8.1S160 493.2 160 480l0-83.6c0-4 1.5-7.8 4.2-10.8L331.8 202.8c5.8-6.3 5.6-16-.4-22s-15.7-6.4-22-.7L106 360.8 17.7 316.6C7.1 311.3 .3 300.7 0 288.9s5.9-22.8 16.1-28.7l448-256c10.7-6.1 23.9-5.5 34 1.4z"
-                />
-              </svg>
-            </button>
-          </div>
-        </footer>
+        <Footer
+          setIsModalOpen={setIsModalOpen}
+          query={query}
+          setQuery={setQuery}
+          getResponse={getResponse}
+          isLoading={isLoading}
+          isError={isError}
+        />
       </div>
       <ModalUpload
         isOpen={isModalOpen}

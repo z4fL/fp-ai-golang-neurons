@@ -12,7 +12,10 @@ const ChatList = ({ chatList, setIsLoading, reloadChat }) => {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (!chatList.length) {
+    if (
+      !chatList.length ||
+      chatList[chatList.length - 1].content === "LOADING..."
+    ) {
       return;
     }
 
@@ -30,9 +33,10 @@ const ChatList = ({ chatList, setIsLoading, reloadChat }) => {
       i++;
 
       if (i > assistantContent.length) {
+        setIsLoading(false);
+
         clearInterval(intervalId);
         setIsCompletedTyping(true);
-        setIsLoading(false);
       }
     }, 5);
 
