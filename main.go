@@ -98,6 +98,7 @@ func main() {
 			log.Println("Failed to encode response: ", err.Error())
 		}
 
+		log.Println("Success to upload file")
 	}).Methods("POST")
 
 	// Chat endpoint
@@ -117,11 +118,46 @@ func main() {
 			return
 		}
 
-		answer, err := aiService.ChatWithAI(chatReq.PreviousChat.Content, chatReq.Query, token)
-		if err != nil {
-			http.Error(w, "Failed to chat with ai", http.StatusInternalServerError)
-			log.Println("Failed to chat with ai: ", err.Error())
-			return
+		var answer string
+
+		if chatReq.Type == "tapas" {
+			filePath := "upload/data-series.csv"
+			var contentFile string
+
+			if fileService.Repo.FileExists(filePath) {
+				existingContent, err := fileService.Repo.ReadFile(filePath)
+				if err != nil {
+					http.Error(w, "Error ", http.StatusBadRequest)
+					log.Println("Error ", err.Error())
+					return
+				}
+				contentFile = string(existingContent)
+			} else {
+				http.Error(w, "Error, file not found", http.StatusBadRequest)
+				log.Println("Error not found ", filePath)
+				return
+			}
+
+			parsedData, err := fileService.ParseCSV(contentFile)
+			if err != nil {
+				http.Error(w, "Error ", http.StatusBadRequest)
+				log.Println("Error ", err.Error())
+				return
+			}
+
+			answer, err = aiService.AnalyzeData(parsedData, chatReq.Query, token)
+			if err != nil {
+				http.Error(w, "Failed to chat with ai", http.StatusInternalServerError)
+				log.Println("Failed to chat with ai: ", err.Error())
+				return
+			}
+		} else if chatReq.Type == "phi" {
+			answer, err = aiService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, token)
+			if err != nil {
+				http.Error(w, "Failed to chat with ai", http.StatusInternalServerError)
+				log.Println("Failed to chat with ai: ", err.Error())
+				return
+			}
 		}
 
 		response := model.Response{Status: "success", Answer: answer}
@@ -132,11 +168,25 @@ func main() {
 			log.Println("Failed to encode response: ", err.Error())
 		}
 
+		log.Println("Success to chat with AI")
+	}).Methods("POST")
+
+	router.HandleFunc("/removesession", func(w http.ResponseWriter, r *http.Request) {
+		filePath := "upload/data-series.csv"
+		err := fileService.Repo.RemoveFile(filePath)
+		if err != nil {
+			http.Error(w, "Error deleting file", http.StatusInternalServerError)
+			log.Printf("Error deleting file %s: %v", filePath, err)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("File deleted successfully"))
 	}).Methods("POST")
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"}, // Allow your React app's origin
+		AllowedOrigins: []string{"*"},
+		// AllowedOrigins: []string{"http://localhost:5173"}, // Allow your Vite app's origin
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	}).Handler(router)

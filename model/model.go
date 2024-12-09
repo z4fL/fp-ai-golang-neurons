@@ -6,8 +6,9 @@ type Response struct {
 }
 
 type ChatRequest struct {
-	Query        string  `json:"query"`
-	PreviousChat Message `json:"prevChat"`
+	Type         string `json:"type"`
+	Query        string `json:"query"`
+	PreviousChat string `json:"prevChat"`
 }
 
 type Inputs struct {

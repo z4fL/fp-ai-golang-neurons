@@ -20,6 +20,10 @@ func (r *FileRepository) FileExists(filename string) bool {
 	return !os.IsNotExist(err)
 }
 
+func (r *FileRepository) RemoveFile(filename string) error {
+	return os.Remove(filename)
+}
+
 // DirExists checks if a directory already exists
 func (r *FileRepository) DirExists(dirname string) bool {
 	info, err := os.Stat(dirname)

@@ -65,7 +65,12 @@ func (s *AIService) AnalyzeData(table map[string][]string, query, token string) 
 	var answer string
 
 	if tapasRes.Aggregator == "NONE" {
-		answer = tapasRes.Answer
+		if len(tapasRes.Cells) == 1 {
+			answer = tapasRes.Answer
+		} else {
+			count, list := processor.Count()
+			answer = fmt.Sprintf("Count: %d, List: %v", count, list)
+		}
 	} else if tapasRes.Aggregator == "COUNT" {
 		count, list := processor.Count()
 		answer = fmt.Sprintf("Count: %d, List: %v", count, list)
