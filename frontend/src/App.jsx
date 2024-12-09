@@ -5,20 +5,44 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 
 const App = () => {
-  const [file, setFile] = useState(null); // file user
-  const [query, setQuery] = useState(""); // query user
+  const [file, setFile] = useState(null);
+  const [query, setQuery] = useState("");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  const [chatHistory, setChatHistory] = useState([
-    {
-      id: 1,
-      role: "assistant",
-      content: "Halo, ada yang bisa aku bantu?",
-    },
-  ]);
+  const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
+
+  const [chatHistory, setChatHistory] = useState(() => {
+    const savedChat = localStorage.getItem("chatSession");
+
+    return savedChat
+      ? JSON.parse(savedChat)
+      : [
+          {
+            id: 1,
+            role: "assistant",
+            content: "Hello, how can I help you?",
+          },
+        ];
+  });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const lastAccess = localStorage.getItem("lastAccess");
+      if (lastAccess) {
+        const now = Date.now();
+        const diff = (now - parseInt(lastAccess, 10)) / 1000;
+        if (diff > 30 * 60) {
+          resetChatSession();
+          clearInterval(interval);
+        }
+      }
+    }, 1000 * 60);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleResponse = async () => {
     setIsLoading(true);
@@ -38,15 +62,16 @@ const App = () => {
       const data = await res.json();
       setChatHistory((prevChat) => prevChat.slice(0, -1));
 
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        {
-          id: prevChat.length + 1,
-          role: "assistant",
-          content: data.answer,
-          type: "text",
-        },
-      ]);
+      const responseChat = {
+        id: prevChat.length + 1,
+        role: "assistant",
+        content: data.answer,
+        type: "text",
+      };
+
+      setChatHistory((prevChat) => [...prevChat, responseChat]);
+      localStorage.setItem("chatSession", JSON.stringify(chatHistory));
+      localStorage.setItem("lastAccess", Date.now());
 
       setFile(null);
       setIsError(false);
@@ -101,7 +126,7 @@ const App = () => {
       ...(previousChat?.id !== 1 && { prevChat: previousChat?.content }),
     };
 
-    return fetch("http://localhost:8080/chat", {
+    return fetch(golangBaseUrl + "/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -114,7 +139,7 @@ const App = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetch("http://localhost:8080/upload", {
+    return fetch(golangBaseUrl + "/upload", {
       method: "POST",
       body: formData,
     });
@@ -140,6 +165,18 @@ const App = () => {
     if (chatHistory[chatHistory.length - 1].type === "error") {
       setChatHistory((prevChat) => prevChat.slice(0, -1));
     }
+  };
+
+  const resetChatSession = () => {
+    localStorage.removeItem("chatSession");
+
+    setChatHistory([
+      {
+        id: 1,
+        role: "assistant",
+        content: "Hello, how can I help you?",
+      },
+    ]);
   };
 
   return (

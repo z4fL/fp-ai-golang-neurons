@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
@@ -110,13 +111,17 @@ func (s *AIService) AnalyzeFile(table map[string][]string, queries []string, tok
 func (s *AIService) ChatWithAI(context, query, token string) (string, error) {
 	url := "https://api-inference.huggingface.co/models/microsoft/Phi-3.5-mini-instruct/v1/chat/completions"
 
+	var messages []model.Message
+	if context != "" {
+		messages = append(messages, model.Message{Role: "assistant", Content: context})
+	}
+	messages = append(messages, model.Message{Role: "user", Content: query})
+
 	requestData := &model.PhiRequest{
 		Model: "microsoft/Phi-3.5-mini-instruct",
-		Messages: []model.Message{
+		Messages: append([]model.Message{
 			{Role: "system", Content: "You are an intelligent assistant designed to help users optimize energy consumption in their smart homes. You must respond clearly, concisely, and in a user-friendly manner. If the user asks for recommendations, base your advice on energy-saving strategies while considering the data insights."},
-			{Role: "assistant", Content: context},
-			{Role: "user", Content: query},
-		},
+		}, messages...),
 		Temperature: 0.2,
 		MaxTokens:   500,
 		Stream:      false,
@@ -126,6 +131,8 @@ func (s *AIService) ChatWithAI(context, query, token string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	log.Println("Request Body:", string(body))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
