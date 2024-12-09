@@ -117,8 +117,9 @@ func (s *AIService) ChatWithAI(context, query, token string) (string, error) {
 			{Role: "assistant", Content: context},
 			{Role: "user", Content: query},
 		},
-		MaxTokens: 500,
-		Stream:    false,
+		Temperature: 0.2,
+		MaxTokens:   500,
+		Stream:      false,
 	}
 
 	body, err := json.Marshal(*requestData)

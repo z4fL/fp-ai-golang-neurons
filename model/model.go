@@ -33,10 +33,11 @@ type Message struct {
 }
 
 type PhiRequest struct {
-	Model     string    `json:"model"`
-	Messages  []Message `json:"messages"`
-	MaxTokens int       `json:"max_tokens"`
-	Stream    bool      `json:"stream"`
+	Model       string    `json:"model"`
+	Messages    []Message `json:"messages"`
+	MaxTokens   int       `json:"max_tokens"`
+	Stream      bool      `json:"stream"`
+	Temperature float64   `json:"temperature"`
 }
 
 type Choice struct {

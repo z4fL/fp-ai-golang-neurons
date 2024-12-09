@@ -19,7 +19,7 @@ const Footer = ({
           className="p-2 bg-lime-200 rounded-md hover:bg-lime-300"
           title="Upload File"
           onClick={() => setIsModalOpen(true)}
-          disabled={isLoading || isError}
+          disabled={isLoading}
         >
           <UploadSVG />
         </button>

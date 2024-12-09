@@ -151,6 +151,7 @@ func main() {
 				log.Println("Failed to chat with ai: ", err.Error())
 				return
 			}
+			log.Println("Success to chat with AI TAPAS")
 		} else if chatReq.Type == "phi" {
 			answer, err = aiService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, token)
 			if err != nil {
@@ -158,6 +159,7 @@ func main() {
 				log.Println("Failed to chat with ai: ", err.Error())
 				return
 			}
+			log.Println("Success to chat with Phi3.5")
 		}
 
 		response := model.Response{Status: "success", Answer: answer}
@@ -185,8 +187,8 @@ func main() {
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		// AllowedOrigins: []string{"http://localhost:5173"}, // Allow your Vite app's origin
+		// AllowedOrigins: []string{"*"},
+		AllowedOrigins: []string{"http://localhost:5173"}, // Allow your Vite app's origin
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	}).Handler(router)
