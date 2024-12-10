@@ -7,16 +7,14 @@ import Footer from "./components/Footer";
 const App = () => {
   const [file, setFile] = useState(null);
   const [query, setQuery] = useState("");
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
 
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
 
-  const [chatHistory, setChatHistory] = useState(() => {
+  const initializeChatHistory = () => {
     const savedChat = localStorage.getItem("chatSession");
-
     return savedChat
       ? JSON.parse(savedChat)
       : [
@@ -26,27 +24,40 @@ const App = () => {
             content: "Hello, how can I help you?",
           },
         ];
-  });
+  };
+
+  const [chatHistory, setChatHistory] = useState(initializeChatHistory);
+
+  const resetChatSession = () => {
+    localStorage.removeItem("chatSession");
+    setChatHistory(initializeChatHistory());
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
       const lastAccess = localStorage.getItem("lastAccess");
-      if (lastAccess) {
-        const now = Date.now();
-        const diff = (now - parseInt(lastAccess, 10)) / 1000;
-        if (diff > 30 * 60) {
-          resetChatSession();
-          clearInterval(interval);
-        }
+
+      if (
+        lastAccess &&
+        Date.now() - parseInt(lastAccess, 10) > 30 * 60 * 1000
+      ) {
+        resetChatSession();
+        clearInterval(interval);
       }
-    }, 1000 * 60);
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
 
+  const appendChat2Session = (newChat) => {
+    setChatHistory((prev) => [...prev, newChat]);
+    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem("lastAccess", Date.now());
+  };
+
   const handleResponse = async () => {
     setIsLoading(true);
-    const lastChat = chatHistory[chatHistory.length - 1];
+    const lastChat = chatHistory.at(-1);
 
     try {
       const res =
@@ -54,14 +65,9 @@ const App = () => {
           ? await handleChat()
           : await handleUploadFile();
 
-      if (!res.ok) {
-        setIsError(true);
-        throw new Error("Failed to fetch response");
-      }
+      if (!res.ok) throw new Error("Failed to fetch response");
 
       const data = await res.json();
-      setChatHistory((prevChat) => prevChat.slice(0, -1));
-
       const responseChat = {
         id: prevChat.length + 1,
         role: "assistant",
@@ -69,18 +75,18 @@ const App = () => {
         type: "text",
       };
 
-      setChatHistory((prevChat) => [...prevChat, responseChat]);
-      localStorage.setItem("chatSession", JSON.stringify(chatHistory));
-      localStorage.setItem("lastAccess", Date.now());
+      // remove LOADING... chat and responseChat
+      setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
+      appendChat2Session(responseChat);
 
-      setFile(null);
+      if (!file) setFile(null); // remove file
       setIsError(false);
     } catch (error) {
       setIsLoading(false);
-      setChatHistory((prevChat) => prevChat.slice(0, -1));
 
+      // remove LOADING... chat and error chat
       setChatHistory((prevChat) => [
-        ...prevChat,
+        ...prevChat.slice(0, -1),
         {
           id: prevChat.length + 1,
           role: "assistant",
@@ -94,10 +100,9 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (
-      chatHistory.length &&
-      chatHistory[chatHistory.length - 1].role === "user"
-    ) {
+    const lastChat = chatHistory.at(-1);
+
+    if (chatHistory.length && lastChat?.role === "user") {
       setChatHistory((prevChat) => [
         ...prevChat,
         {
@@ -112,25 +117,19 @@ const App = () => {
     }
   }, [chatHistory]);
 
-  const handleChat = async () => {
-    const lastChat = chatHistory[chatHistory.length - 1];
-    const previousChat = chatHistory[chatHistory.length - 2];
-
-    const queryTapas = lastChat.content.includes("/file")
-      ? lastChat.content.replace("/file", "").trim()
-      : lastChat.content;
+  const handleChat = () => {
+    const lastChat = chatHistory.at(-1);
+    const previousChat = chatHistory.at(-2);
 
     const payload = {
       type: lastChat.content.includes("/file") ? "tapas" : "phi",
-      query: queryTapas,
-      ...(previousChat?.id !== 1 && { prevChat: previousChat?.content }),
+      query: lastChat.content.replace("/file", "").trim(),
+      ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    return fetch(golangBaseUrl + "/chat", {
+    return fetch(`${golangBaseUrl}/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
   };
@@ -139,20 +138,20 @@ const App = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetch(golangBaseUrl + "/upload", {
+    return fetch(`${golangBaseUrl}/upload`, {
       method: "POST",
       body: formData,
     });
   };
 
   const getResponse = (type) => {
-    if (type === "file") if (!file) return;
+    if (type === "file" && !file) return;
 
     const newChat = {
       id: chatHistory.length + 1,
       role: "user",
       type,
-      content: type === "text" ? query : { name: file?.name, size: file?.size },
+      content: type === "text" ? query : { name: file.name, size: file.size },
     };
 
     if (type === "text") setQuery("");
@@ -167,25 +166,11 @@ const App = () => {
     }
   };
 
-  const resetChatSession = () => {
-    localStorage.removeItem("chatSession");
-
-    setChatHistory([
-      {
-        id: 1,
-        role: "assistant",
-        content: "Hello, how can I help you?",
-      },
-    ]);
-  };
-
   return (
     <>
       <div className="flex flex-col h-screen bg-slate-50 font-noto">
-        {/* Header */}
         <Header />
 
-        {/* Chat Area */}
         <ChatList
           chatList={chatHistory}
           setIsLoading={setIsLoading}
