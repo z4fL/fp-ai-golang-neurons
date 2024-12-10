@@ -1,6 +1,10 @@
 package fileRepository
 
-import "os"
+import (
+	"fmt"
+	"log"
+	"os"
+)
 
 type FileRepository struct{}
 
@@ -17,17 +21,26 @@ func (r *FileRepository) ReadFile(filename string) ([]byte, error) {
 // FileExists checks if a file already exists
 func (r *FileRepository) FileExists(filename string) bool {
 	_, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		log.Printf("Error checking file: %v\n", err)
+	}
 	return !os.IsNotExist(err)
 }
 
 func (r *FileRepository) RemoveFile(filename string) error {
+	if !r.FileExists(filename) {
+		return fmt.Errorf("file %s does not exist", filename)
+	}
 	return os.Remove(filename)
 }
 
 // DirExists checks if a directory already exists
 func (r *FileRepository) DirExists(dirname string) bool {
 	info, err := os.Stat(dirname)
-	if os.IsNotExist(err) {
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("Error checking directory: %v\n", err)
+		}
 		return false
 	}
 	return info.IsDir()

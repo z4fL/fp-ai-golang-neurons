@@ -14,6 +14,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/service"
+	"github.com/z4fL/fp-ai-golang-neurons/utility"
 )
 
 // Init services
@@ -40,31 +41,31 @@ func main() {
 		// Parse form data
 		err := r.ParseMultipartForm(1 << 20) // 1MB
 		if err != nil {
-			http.Error(w, "Unable to parse form", http.StatusBadRequest)
-			log.Println("Unable to parse form: ", err.Error())
+			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Failed to parse form data")
+			log.Printf("ParseMultipartForm error: %v", err)
 			return
 		}
 
 		// Get the uploaded file
 		file, handler, err := r.FormFile("file") // "file" sesuai nama field di frontend
 		if err != nil {
-			http.Error(w, "Error retrieving file", http.StatusInternalServerError)
-			log.Println("Error retrieving file: ", err.Error())
+			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Failed to retrieve uploaded file")
+			log.Printf("FormFile error: %v", err)
 			return
 		}
 		defer file.Close()
 
 		if !strings.HasSuffix(handler.Filename, ".csv") { // hanya boleh .csv
-			http.Error(w, "Only .csv files are allowed", http.StatusInternalServerError)
-			log.Println("Only .csv file")
+			utility.JSONResponse(w, http.StatusUnsupportedMediaType, "failed", "Only .csv files are allowed")
+			log.Printf("Unsupported file type: %s", handler.Filename)
 			return
 		}
 
 		// Membaca file content
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, file); err != nil {
-			http.Error(w, "Failed to read file content", http.StatusInternalServerError)
-			log.Println("Failed to read file content: ", err.Error())
+			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to read file content")
+			log.Printf("io.Copy error: %v", err)
 			return
 		}
 		fileContent := buf.String()
@@ -72,8 +73,8 @@ func main() {
 		// process file
 		parsedData, err := fileService.ProcessFile(fileContent)
 		if err != nil {
-			http.Error(w, "Error processing file", http.StatusInternalServerError)
-			log.Println("Error processing file: ", err)
+			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to process file content")
+			log.Printf("ProcessFile error: %v", err)
 			return
 		}
 
@@ -85,19 +86,12 @@ func main() {
 		// analisi data
 		answer, err := aiService.AnalyzeFile(parsedData, queries, token)
 		if err != nil {
-			http.Error(w, "Failed to analyze data", http.StatusInternalServerError)
-			log.Println("Failed to analyze data: ", err.Error())
+			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to analyze data")
+			log.Printf("AnalyzeFile error: %v", err)
 			return
 		}
 
-		response := model.Response{Status: "success", Answer: answer}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(&response); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-			log.Println("Failed to encode response: ", err.Error())
-		}
-
+		utility.JSONResponse(w, http.StatusOK, "success", answer)
 		log.Println("Success to upload file")
 	}).Methods("POST")
 
@@ -105,84 +99,87 @@ func main() {
 	router.HandleFunc("/chat", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Error read Body", http.StatusInternalServerError)
-			log.Println("Error read Body: ", err.Error())
+			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Failed to read request body")
+			log.Printf("ReadAll error: %v", err)
+			return
 		}
 		defer r.Body.Close()
 
 		var chatReq model.ChatRequest
 		err = json.Unmarshal(body, &chatReq)
 		if err != nil {
-			http.Error(w, "Error unmarshalling request body", http.StatusBadRequest)
-			log.Println("Error unmarshalling request body", err.Error())
+			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid JSON format in request body")
+			log.Printf("Unmarshal error: %v", err)
 			return
 		}
 
 		var answer string
-
-		if chatReq.Type == "tapas" {
+		switch chatReq.Type {
+		case "tapas":
 			filePath := "upload/data-series.csv"
-			var contentFile string
 
-			if fileService.Repo.FileExists(filePath) {
-				existingContent, err := fileService.Repo.ReadFile(filePath)
-				if err != nil {
-					http.Error(w, "Error ", http.StatusBadRequest)
-					log.Println("Error ", err.Error())
-					return
-				}
-				contentFile = string(existingContent)
-			} else {
-				http.Error(w, "Error, file not found", http.StatusBadRequest)
-				log.Println("Error not found ", filePath)
+			if !fileService.Repo.FileExists(filePath) {
+				utility.JSONResponse(w, http.StatusNotFound, "failed", "Data file not found")
+				log.Printf("File not found: %s", filePath)
 				return
 			}
 
-			parsedData, err := fileService.ParseCSV(contentFile)
+			contentFile, err := fileService.Repo.ReadFile(filePath)
 			if err != nil {
-				http.Error(w, "Error ", http.StatusBadRequest)
-				log.Println("Error ", err.Error())
+				utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to read data file")
+				log.Printf("ReadFile error: %v", err)
+				return
+			}
+
+			parsedData, err := fileService.ParseCSV(string(contentFile))
+			if err != nil {
+				utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to parse CSV data")
+				log.Printf("ParseCSV error: %v", err)
 				return
 			}
 
 			answer, err = aiService.AnalyzeData(parsedData, chatReq.Query, token)
 			if err != nil {
-				http.Error(w, "Failed to chat with ai", http.StatusInternalServerError)
-				log.Println("Failed to chat with ai: ", err.Error())
+				utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to analyze data with AI")
+				log.Printf("AnalyzeData error: %v", err)
 				return
 			}
-			log.Println("Success to chat with AI TAPAS")
-		} else if chatReq.Type == "phi" {
+			log.Println("Chat request processed successfully with google/tapas-base-finetuned-wtq")
+
+		case "phi":
 			answer, err = aiService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, token)
 			if err != nil {
-				http.Error(w, "Failed to chat with ai", http.StatusInternalServerError)
-				log.Println("Failed to chat with ai: ", err.Error())
+				utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to chat with AI Phi")
+				log.Printf("ChatWithAI error: %v", err)
 				return
 			}
-			log.Println("Success to chat with Phi3.5")
+			log.Println("Chat request processed successfully with microsoft/Phi-3.5-mini-instruct")
+
+		default:
+			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid chat type")
+			log.Printf("Invalid chat type: %s", chatReq.Type)
+			return
 		}
 
-		response := model.Response{Status: "success", Answer: answer}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(&response); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-			log.Println("Failed to encode response: ", err.Error())
-		}
-
-		log.Println("Success to chat with AI")
+		utility.JSONResponse(w, http.StatusOK, "success", answer)
 	}).Methods("POST")
 
 	router.HandleFunc("/removesession", func(w http.ResponseWriter, r *http.Request) {
 		filePath := "upload/data-series.csv"
-		err := fileService.Repo.RemoveFile(filePath)
-		if err != nil {
-			http.Error(w, "Error deleting file", http.StatusInternalServerError)
-			log.Printf("Error deleting file %s: %v", filePath, err)
+
+		if err := fileService.Repo.RemoveFile(filePath); err != nil {
+			if os.IsNotExist(err) {
+				utility.JSONResponse(w, http.StatusNotFound, "failed", "File not found")
+				log.Printf("File not found: %s", filePath)
+			} else {
+				utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to delete file")
+				log.Printf("RemoveFile error: %v", err)
+			}
 			return
 		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("File deleted successfully"))
+
+		utility.JSONResponse(w, http.StatusOK, "success", "File deleted successfully")
+		log.Println("Session file deleted successfully")
 	}).Methods("POST")
 
 	// Enable CORS
