@@ -21,6 +21,9 @@ import (
 var fileService = &service.FileService{}
 var aiService = &service.AIService{Client: &http.Client{}}
 
+const defaultPort = "8080"
+const dataFilePath = "upload/data-series.csv"
+
 func main() {
 	// Load the .env file
 	if err := godotenv.Load(); err != nil {
@@ -47,7 +50,7 @@ func main() {
 		}
 
 		// Get the uploaded file
-		file, handler, err := r.FormFile("file") // "file" sesuai nama field di frontend
+		file, handler, err := r.FormFile("file") // "file" matches the field name in the frontend
 		if err != nil {
 			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Failed to retrieve uploaded file")
 			log.Printf("FormFile error: %v", err)
@@ -55,13 +58,13 @@ func main() {
 		}
 		defer file.Close()
 
-		if !strings.HasSuffix(handler.Filename, ".csv") { // hanya boleh .csv
+		if !strings.HasSuffix(handler.Filename, ".csv") { // only .csv files are allowed
 			utility.JSONResponse(w, http.StatusUnsupportedMediaType, "failed", "Only .csv files are allowed")
 			log.Printf("Unsupported file type: %s", handler.Filename)
 			return
 		}
 
-		// Membaca file content
+		// Read file content
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, file); err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to read file content")
@@ -83,7 +86,7 @@ func main() {
 			"Find the most electricity usage appliance.",
 		}
 
-		// analisi data
+		// analyze data
 		answer, err := aiService.AnalyzeFile(parsedData, queries, token)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to analyze data")
@@ -116,7 +119,7 @@ func main() {
 		var answer string
 		switch chatReq.Type {
 		case "tapas":
-			filePath := "upload/data-series.csv"
+			filePath := dataFilePath
 
 			if !fileService.Repo.FileExists(filePath) {
 				utility.JSONResponse(w, http.StatusNotFound, "failed", "Data file not found")
@@ -156,7 +159,7 @@ func main() {
 			log.Println("Chat request processed successfully with microsoft/Phi-3.5-mini-instruct")
 
 		default:
-			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid chat type")
+			utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid chat type: "+chatReq.Type)
 			log.Printf("Invalid chat type: %s", chatReq.Type)
 			return
 		}
@@ -164,13 +167,12 @@ func main() {
 		utility.JSONResponse(w, http.StatusOK, "success", answer)
 	}).Methods("POST")
 
+	// Removes the session file (data-series.csv) from the server.
 	router.HandleFunc("/removesession", func(w http.ResponseWriter, r *http.Request) {
-		filePath := "upload/data-series.csv"
-
-		if err := fileService.Repo.RemoveFile(filePath); err != nil {
+		if err := fileService.Repo.RemoveFile(dataFilePath); err != nil {
 			if os.IsNotExist(err) {
 				utility.JSONResponse(w, http.StatusNotFound, "failed", "File not found")
-				log.Printf("File not found: %s", filePath)
+				log.Printf("File not found: %s", dataFilePath)
 			} else {
 				utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to delete file")
 				log.Printf("RemoveFile error: %v", err)
@@ -184,15 +186,15 @@ func main() {
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
-		// AllowedOrigins: []string{"*"},
-		AllowedOrigins: []string{"http://localhost:5173"}, // Allow your Vite app's origin
+		AllowedOrigins: []string{"http://localhost:5173"}, // Replace with your specific allowed origins
+		// AllowedOrigins: []string{"*"}, // Allow your Vite app's origin
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	}).Handler(router)
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = defaultPort
 	}
 
 	// Start the server
