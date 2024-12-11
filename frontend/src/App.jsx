@@ -11,53 +11,67 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
 
+  const [isReload, setIsReload] = useState(false);
+
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
 
   const initializeChatHistory = () => {
     const savedChat = localStorage.getItem("chatSession");
-    return savedChat
-      ? JSON.parse(savedChat)
-      : [
-          {
-            id: 1,
-            role: "assistant",
-            content: "Hello, how can I help you?",
-          },
-        ];
+
+    const initChat = {
+      id: 1,
+      role: "assistant",
+      content: "Hello, how can I help you?",
+    };
+
+    setIsReload(true);
+
+    if (savedChat) {
+      return JSON.parse(savedChat);
+    } else {
+      return [initChat];
+    }
   };
 
   const [chatHistory, setChatHistory] = useState(initializeChatHistory);
 
-  const resetChatSession = () => {
+  const resetChatSession = async () => {
     localStorage.removeItem("chatSession");
+    localStorage.removeItem("lastAccess");
+    const res = await fetch(`${golangBaseUrl}/remove-session`, {
+      method: "POST",
+    });
+    if (!res.ok) console.log("Failed to remove session");
+    else console.log("success to remove session");
     setChatHistory(initializeChatHistory());
   };
 
   useEffect(() => {
     const interval = setInterval(() => {
       const lastAccess = localStorage.getItem("lastAccess");
+      console.log("Checking session timeout...");
 
       if (
         lastAccess &&
         Date.now() - parseInt(lastAccess, 10) > 30 * 60 * 1000
       ) {
+        console.log("Session expired. Resetting chat session.");
         resetChatSession();
         clearInterval(interval);
       }
-    }, 60 * 1000);
+    }, 30 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [resetChatSession]);
 
   const appendChat2Session = (newChat) => {
-    setChatHistory((prev) => [...prev, newChat]);
-    localStorage.setItem(key, JSON.stringify(value));
+    localStorage.setItem("chatSession", JSON.stringify(newChat));
     localStorage.setItem("lastAccess", Date.now());
   };
 
   const handleResponse = async () => {
     setIsLoading(true);
-    const lastChat = chatHistory.at(-1);
+    const lastChat = chatHistory[chatHistory.length - 1];
 
     try {
       const res =
@@ -65,37 +79,40 @@ const App = () => {
           ? await handleChat()
           : await handleUploadFile();
 
+      const data = await res.json();
+
       if (!res.ok) throw new Error("Failed to fetch response");
 
-      const data = await res.json();
       const responseChat = {
-        id: prevChat.length + 1,
+        id: chatHistory.length + 1,
         role: "assistant",
         content: data.answer,
         type: "text",
       };
 
-      // remove LOADING... chat and responseChat
-      setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
-      appendChat2Session(responseChat);
+      // remove LOADING... chat and add responseChat
+      setChatHistory((prevChat) => {
+        const updatedChat = [...prevChat.slice(0, -1), responseChat];
+        appendChat2Session(updatedChat);
+        return updatedChat;
+      });
 
       if (!file) setFile(null); // remove file
       setIsError(false);
     } catch (error) {
-      setIsLoading(false);
-
       // remove LOADING... chat and error chat
       setChatHistory((prevChat) => [
         ...prevChat.slice(0, -1),
         {
           id: prevChat.length + 1,
           role: "assistant",
-          content: "ERROR",
+          content: String(error),
           type: "error",
         },
       ]);
 
       setIsError(true);
+      setIsLoading(false);
     }
   };
 
@@ -118,8 +135,8 @@ const App = () => {
   }, [chatHistory]);
 
   const handleChat = () => {
-    const lastChat = chatHistory.at(-1);
-    const previousChat = chatHistory.at(-2);
+    const lastChat = chatHistory[chatHistory.length - 1];
+    const previousChat = chatHistory[chatHistory.length - 2];
 
     const payload = {
       type: lastChat.content.includes("/file") ? "tapas" : "phi",
@@ -145,6 +162,7 @@ const App = () => {
   };
 
   const getResponse = (type) => {
+    setIsReload(false);
     if (type === "file" && !file) return;
 
     const newChat = {
@@ -175,6 +193,7 @@ const App = () => {
           chatList={chatHistory}
           setIsLoading={setIsLoading}
           reloadChat={reloadChat}
+          isReload={isReload}
         />
 
         {/* Input Area */}

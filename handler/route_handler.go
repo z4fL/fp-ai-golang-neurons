@@ -6,20 +6,23 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/repository"
 	"github.com/z4fL/fp-ai-golang-neurons/service"
 	"github.com/z4fL/fp-ai-golang-neurons/utility"
+	"github.com/z4fL/fp-ai-golang-neurons/utility/projectpath"
 )
 
 // Init services
 var FileService = service.NewFileService(&repository.FileRepository{})
 var AIService = &service.AIService{Client: &http.Client{}}
 
-const dataFilePath = "/upload/data-series.csv"
+const dataFilePath = "upload/data-series.csv"
 
+var dir = filepath.Join(projectpath.Root, dataFilePath)
 var Token string
 
 func HandleUpload(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +103,7 @@ func HandleChat(w http.ResponseWriter, r *http.Request) {
 	var answer string
 	switch chatReq.Type {
 	case "tapas":
-		filePath := dataFilePath
+		filePath := dir
 
 		if !FileService.Repo.FileExists(filePath) {
 			utility.JSONResponse(w, http.StatusNotFound, "failed", "Data file not found")
@@ -149,15 +152,15 @@ func HandleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleRemoveSession(w http.ResponseWriter, r *http.Request) {
-	if !FileService.Repo.FileExists(dataFilePath) {
+	if !FileService.Repo.FileExists(dir) {
 		utility.JSONResponse(w, http.StatusNotFound, "failed", "File not found")
-		log.Printf("File not found: %s", dataFilePath)
+		log.Printf("File not found: %s", dir)
 		return
 	}
 
-	if err := FileService.Repo.RemoveFile(dataFilePath); err != nil {
+	if err := FileService.Repo.RemoveFile(dir); err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to delete file")
-		log.Printf("Failed to delete file %s: %v", dataFilePath, err)
+		log.Printf("Failed to delete file %s: %v", dir, err)
 		return
 	}
 

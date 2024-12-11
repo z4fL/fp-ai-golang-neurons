@@ -351,7 +351,7 @@ var _ = Describe("RouteHandler", func() {
 		It("should successfully remove the session file", func() {
 			mockRepo.Files["/upload/data-series.csv"] = []byte("some content")
 
-			req := httptest.NewRequest("DELETE", "/remove-session", nil)
+			req := httptest.NewRequest("POST", "/remove-session", nil)
 			w := httptest.NewRecorder()
 
 			handler.HandleRemoveSession(w, req)
@@ -361,7 +361,7 @@ var _ = Describe("RouteHandler", func() {
 		})
 
 		It("should return an error if the session file does not exist", func() {
-			req := httptest.NewRequest("DELETE", "/remove-session", nil)
+			req := httptest.NewRequest("POST", "/remove-session", nil)
 			w := httptest.NewRecorder()
 
 			handler.HandleRemoveSession(w, req)
