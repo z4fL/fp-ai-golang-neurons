@@ -31,8 +31,6 @@ func (s *FileService) ProcessFile(fileContent string) (map[string][]string, erro
 		}
 	}
 
-	// log.Println(dir)
-
 	filename := "data-series.csv"
 	filePath := dir + "/" + filename
 

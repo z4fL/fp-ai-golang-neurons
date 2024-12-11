@@ -63,7 +63,7 @@ func (s *AIService) AnalyzeData(table map[string][]string, query, token string) 
 	}
 
 	processor := utility.TapasProcessor{
-		Cells: &tapasRes.Cells,
+		Cells: tapasRes.Cells,
 	}
 
 	var answer string
@@ -72,11 +72,11 @@ func (s *AIService) AnalyzeData(table map[string][]string, query, token string) 
 		if len(tapasRes.Cells) == 1 {
 			answer = tapasRes.Answer
 		} else {
-			count, list := processor.Count()
+			count, list := processor.CountUniqueCells()
 			answer = fmt.Sprintf("Count: %d, List: %v", count, list)
 		}
 	} else if tapasRes.Aggregator == "COUNT" {
-		count, list := processor.Count()
+		count, list := processor.CountUniqueCells()
 		answer = fmt.Sprintf("Count: %d, List: %v", count, list)
 	} else if tapasRes.Aggregator == "SUM" {
 		sum := processor.Sum()
