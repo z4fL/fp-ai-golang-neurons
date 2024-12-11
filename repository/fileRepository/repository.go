@@ -48,5 +48,5 @@ func (r *FileRepository) DirExists(dirname string) bool {
 
 // MakeDir creates a new directory with the specified name
 func (r *FileRepository) MakeDir(dirname string) error {
-	return os.Mkdir(dirname, 0755)
+	return os.MkdirAll(dirname, os.ModePerm)
 }

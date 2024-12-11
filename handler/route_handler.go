@@ -14,10 +14,10 @@ import (
 )
 
 // Init services
-var fileService = &service.FileService{}
-var aiService = &service.AIService{Client: &http.Client{}}
+var FileService = &service.FileService{}
+var AIService = &service.AIService{Client: &http.Client{}}
 
-const dataFilePath = "upload/data-series.csv"
+const dataFilePath = "/upload/data-series.csv"
 
 var Token string
 
@@ -55,7 +55,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 	fileContent := buf.String()
 
 	// process file
-	parsedData, err := fileService.ProcessFile(fileContent)
+	parsedData, err := FileService.ProcessFile(fileContent)
 	if err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to process file content")
 		log.Printf("ProcessFile error: %v", err)
@@ -68,7 +68,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// analyze data
-	answer, err := aiService.AnalyzeFile(parsedData, queries, Token)
+	answer, err := AIService.AnalyzeFile(parsedData, queries, Token)
 	if err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to analyze data")
 		log.Printf("AnalyzeFile error: %v", err)
@@ -101,27 +101,27 @@ func HandleChat(w http.ResponseWriter, r *http.Request) {
 	case "tapas":
 		filePath := dataFilePath
 
-		if !fileService.Repo.FileExists(filePath) {
+		if !FileService.Repo.FileExists(filePath) {
 			utility.JSONResponse(w, http.StatusNotFound, "failed", "Data file not found")
 			log.Printf("File not found: %s", filePath)
 			return
 		}
 
-		contentFile, err := fileService.Repo.ReadFile(filePath)
+		contentFile, err := FileService.Repo.ReadFile(filePath)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to read data file")
 			log.Printf("ReadFile error: %v", err)
 			return
 		}
 
-		parsedData, err := fileService.ParseCSV(string(contentFile))
+		parsedData, err := FileService.ParseCSV(string(contentFile))
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to parse CSV data")
 			log.Printf("ParseCSV error: %v", err)
 			return
 		}
 
-		answer, err = aiService.AnalyzeData(parsedData, chatReq.Query, Token)
+		answer, err = AIService.AnalyzeData(parsedData, chatReq.Query, Token)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to analyze data with AI")
 			log.Printf("AnalyzeData error: %v", err)
@@ -130,7 +130,7 @@ func HandleChat(w http.ResponseWriter, r *http.Request) {
 		log.Println("Chat request processed successfully with google/tapas-base-finetuned-wtq")
 
 	case "phi":
-		answer, err = aiService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, Token)
+		answer, err = AIService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, Token)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to chat with AI Phi")
 			log.Printf("ChatWithAI error: %v", err)
@@ -148,13 +148,13 @@ func HandleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleRemoveSession(w http.ResponseWriter, r *http.Request) {
-	if !fileService.Repo.FileExists(dataFilePath) {
+	if !FileService.Repo.FileExists(dataFilePath) {
 		utility.JSONResponse(w, http.StatusNotFound, "failed", "File not found")
 		log.Printf("File not found: %s", dataFilePath)
 		return
 	}
 
-	if err := fileService.Repo.RemoveFile(dataFilePath); err != nil {
+	if err := FileService.Repo.RemoveFile(dataFilePath); err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to delete file")
 		log.Printf("Failed to delete file %s: %v", dataFilePath, err)
 		return
