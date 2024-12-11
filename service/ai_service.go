@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
@@ -21,6 +20,10 @@ type AIService struct {
 }
 
 func (s *AIService) AnalyzeData(table map[string][]string, query, token string) (string, error) {
+	if len(table) == 0 {
+		return "", errors.New("table cannot be empty")
+	}
+
 	url := "https://api-inference.huggingface.co/models/google/tapas-base-finetuned-wtq"
 	requestData := &model.TapasRequest{
 		Inputs: model.Inputs{
@@ -132,7 +135,7 @@ func (s *AIService) ChatWithAI(context, query, token string) (string, error) {
 		return "", err
 	}
 
-	log.Println("Request Body:", string(body))
+	// log.Println("Request Body:", string(body))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {

@@ -1,10 +1,19 @@
-package fileRepository
+package repository
 
 import (
 	"fmt"
 	"log"
 	"os"
 )
+
+type Repository interface {
+	SaveFile(filename string, content []byte) error
+	ReadFile(filename string) ([]byte, error)
+	FileExists(filename string) bool
+	RemoveFile(filename string) error
+	DirExists(dirname string) bool
+	MakeDir(dirname string) error
+}
 
 type FileRepository struct{}
 
@@ -48,5 +57,5 @@ func (r *FileRepository) DirExists(dirname string) bool {
 
 // MakeDir creates a new directory with the specified name
 func (r *FileRepository) MakeDir(dirname string) error {
-	return os.Mkdir(dirname, 0755)
+	return os.MkdirAll(dirname, os.ModePerm)
 }

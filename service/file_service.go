@@ -4,13 +4,19 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
-	repository "github.com/z4fL/fp-ai-golang-neurons/repository/fileRepository"
+	"github.com/z4fL/fp-ai-golang-neurons/repository"
+	"github.com/z4fL/fp-ai-golang-neurons/utility/projectpath"
 )
 
 type FileService struct {
-	Repo *repository.FileRepository
+	Repo repository.Repository
+}
+
+func NewFileService(repo repository.Repository) *FileService {
+	return &FileService{Repo: repo}
 }
 
 func (s *FileService) ProcessFile(fileContent string) (map[string][]string, error) {
@@ -18,12 +24,14 @@ func (s *FileService) ProcessFile(fileContent string) (map[string][]string, erro
 		return nil, errors.New("file content is empty")
 	}
 
-	dir := "upload"
+	dir := filepath.Join(projectpath.Root, "upload")
 	if !s.Repo.DirExists(dir) {
 		if err := s.Repo.MakeDir(dir); err != nil {
 			return nil, err
 		}
 	}
+
+	// log.Println(dir)
 
 	filename := "data-series.csv"
 	filePath := dir + "/" + filename
