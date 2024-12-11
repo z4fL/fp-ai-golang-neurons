@@ -16,13 +16,13 @@ const defaultPort = "8080"
 func main() {
 	// Load the .env file
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	// Retrieve the Hugging Face token from the environment variables
 	handler.Token = os.Getenv("HUGGINGFACE_TOKEN")
 	if handler.Token == "" {
-		log.Fatal("HUGGINGFACE_TOKEN isn't set in the .env file")
+		log.Fatal("Environment variable HUGGINGFACE_TOKEN isn't set in the .env file")
 	}
 
 	// Set up the router
@@ -53,6 +53,6 @@ func main() {
 	// Start the server
 	log.Printf("Server running on port %s\n", port)
 	if err := http.ListenAndServe(":"+port, corsHandler); err != nil {
-		log.Printf("Server failed to start: %v", err)
+		log.Fatalf("Server failed to start on port %s: %v", port, err)
 	}
 }

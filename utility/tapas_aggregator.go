@@ -2,17 +2,20 @@ package utility
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
 
+const ErrNoNumericValuesFound = "no numeric values found"
+
 type TapasProcessor struct {
-	Cells *[]string
+	Cells []string
 }
 
-func (tp *TapasProcessor) Count() (int, string) {
+func (tp *TapasProcessor) CountUniqueCells() (int, string) {
 	result := make(map[string]bool)
-	for _, room := range *tp.Cells {
+	for _, room := range tp.Cells {
 		result[room] = true
 	}
 
@@ -21,14 +24,21 @@ func (tp *TapasProcessor) Count() (int, string) {
 		uniqueValue = append(uniqueValue, value)
 	}
 
-	valueList := strings.Join(uniqueValue, ", ")
+	var builder strings.Builder
+	for i, value := range uniqueValue {
+		if i > 0 {
+			builder.WriteString(", ")
+		}
+		builder.WriteString(value)
+	}
+	valueList := builder.String()
 
-	return len(result), valueList // Jumlah unique items
+	return len(result), valueList // Number of unique items
 }
 
 func (tp *TapasProcessor) Sum() float64 {
 	total := 0.0
-	for _, cell := range *tp.Cells {
+	for _, cell := range tp.Cells {
 		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			total += num
 		}
@@ -39,10 +49,12 @@ func (tp *TapasProcessor) Sum() float64 {
 func (tp *TapasProcessor) Average() float64 {
 	total := 0.0
 	count := 0
-	for _, cell := range *tp.Cells {
+	for _, cell := range tp.Cells {
 		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			total += num
 			count++
+		} else {
+			fmt.Printf("Error parsing cell value '%s': %v\n", cell, err)
 		}
 	}
 	if count == 0 {
@@ -51,10 +63,12 @@ func (tp *TapasProcessor) Average() float64 {
 	return float64(total) / float64(count)
 }
 
+// Max returns the maximum numeric value from the Cells slice.
+// If no numeric values are found, it returns an error.
 func (tp *TapasProcessor) Max() (float64, error) {
-	maxValue := 0.0
+	maxValue := math.Inf(-1)
 	found := false
-	for _, cell := range *tp.Cells {
+	for _, cell := range tp.Cells {
 		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			if !found || num > maxValue {
 				maxValue = num
@@ -63,15 +77,15 @@ func (tp *TapasProcessor) Max() (float64, error) {
 		}
 	}
 	if !found {
-		return 0, fmt.Errorf("no numeric values found")
+		return 0, fmt.Errorf(ErrNoNumericValuesFound)
 	}
 	return maxValue, nil
 }
 
 func (tp *TapasProcessor) Min() (float64, error) {
-	minValue := 0.0
+	minValue := math.Inf(1)
 	found := false
-	for _, cell := range *tp.Cells {
+	for _, cell := range tp.Cells {
 		if num, err := strconv.ParseFloat(cell, 64); err == nil {
 			if !found || num < minValue {
 				minValue = num
