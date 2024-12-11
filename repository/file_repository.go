@@ -1,10 +1,19 @@
-package fileRepository
+package repository
 
 import (
 	"fmt"
 	"log"
 	"os"
 )
+
+type Repository interface {
+	SaveFile(filename string, content []byte) error
+	ReadFile(filename string) ([]byte, error)
+	FileExists(filename string) bool
+	RemoveFile(filename string) error
+	DirExists(dirname string) bool
+	MakeDir(dirname string) error
+}
 
 type FileRepository struct{}
 

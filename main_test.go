@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/z4fL/fp-ai-golang-neurons/repository"
 	"github.com/z4fL/fp-ai-golang-neurons/service"
 )
 
@@ -14,14 +15,12 @@ var _ = Describe("FileService", func() {
 	var fileService *service.FileService
 
 	BeforeEach(func() {
-		fileService = &service.FileService{}
+		fileService = service.NewFileService(&repository.FileRepository{})
 	})
 
 	Describe("ProcessFile", func() {
 		It("should return the correct result for valid CSV data", func() {
-			fileContent := `header1,header2
-value1,value2
-value3,value4`
+			fileContent := "header1,header2\nvalue1,value2\nvalue3,value4"
 			expected := map[string][]string{
 				"header1": {"value1", "value3"},
 				"header2": {"value2", "value4"},
@@ -41,9 +40,7 @@ value3,value4`
 		})
 
 		It("should return an error for invalid CSV data", func() {
-			fileContent := `header1,header2
-value1,value2
-value3`
+			fileContent := "header1,header2\nvalue1,value2\nvalue3"
 
 			result, err := fileService.ProcessFile(fileContent)
 			Expect(err).To(HaveOccurred())

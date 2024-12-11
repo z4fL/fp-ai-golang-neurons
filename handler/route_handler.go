@@ -9,12 +9,13 @@ import (
 	"strings"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
+	"github.com/z4fL/fp-ai-golang-neurons/repository"
 	"github.com/z4fL/fp-ai-golang-neurons/service"
 	"github.com/z4fL/fp-ai-golang-neurons/utility"
 )
 
 // Init services
-var FileService = &service.FileService{}
+var FileService = service.NewFileService(&repository.FileRepository{})
 var AIService = &service.AIService{Client: &http.Client{}}
 
 const dataFilePath = "/upload/data-series.csv"
