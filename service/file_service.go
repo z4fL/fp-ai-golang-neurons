@@ -11,15 +11,21 @@ import (
 	"github.com/z4fL/fp-ai-golang-neurons/utility/projectpath"
 )
 
-type FileService struct {
-	Repo repository.Repository
+type FileService interface {
+	ProcessFile(fileContent string) (map[string][]string, error)
+	ParseCSV(fileContent string) (map[string][]string, error)
+	GetRepo() repository.FileRepository
 }
 
-func NewFileService(repo repository.Repository) *FileService {
-	return &FileService{Repo: repo}
+type fileService struct {
+	Repo repository.FileRepository
 }
 
-func (s *FileService) ProcessFile(fileContent string) (map[string][]string, error) {
+func NewFileService(repo repository.FileRepository) FileService {
+	return &fileService{Repo: repo}
+}
+
+func (s *fileService) ProcessFile(fileContent string) (map[string][]string, error) {
 	if strings.TrimSpace(fileContent) == "" {
 		return nil, errors.New("file content is empty")
 	}
@@ -48,13 +54,13 @@ func (s *FileService) ProcessFile(fileContent string) (map[string][]string, erro
 			contentFile = fileContent
 			err := s.Repo.SaveFile(filePath, []byte(fileContent))
 			if err != nil {
-				return nil, fmt.Errorf("error saving file: %v", err)
+				return nil, fmt.Errorf("failed to save file")
 			}
 		}
 	} else {
 		err := s.Repo.SaveFile(filePath, []byte(fileContent))
 		if err != nil {
-			return nil, fmt.Errorf("error saving file: %v", err)
+			return nil, fmt.Errorf("failed to save file")
 		}
 
 		contentFile = fileContent
@@ -68,12 +74,12 @@ func (s *FileService) ProcessFile(fileContent string) (map[string][]string, erro
 	return parsedData, nil
 }
 
-func (s *FileService) ParseCSV(fileContent string) (map[string][]string, error) {
+func (s *fileService) ParseCSV(fileContent string) (map[string][]string, error) {
 	reader := csv.NewReader(strings.NewReader(fileContent))
 
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("error reading CSV: %v", err)
+		return nil, fmt.Errorf("invalid CSV data")
 	}
 
 	if len(records) <= 1 {
@@ -94,5 +100,8 @@ func (s *FileService) ParseCSV(fileContent string) (map[string][]string, error) 
 	}
 
 	return parsedData, nil
+}
 
+func (s *fileService) GetRepo() repository.FileRepository {
+	return s.Repo
 }

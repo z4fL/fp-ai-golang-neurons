@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-type Repository interface {
+type FileRepository interface {
 	SaveFile(filename string, content []byte) error
 	ReadFile(filename string) ([]byte, error)
 	FileExists(filename string) bool
@@ -15,20 +15,24 @@ type Repository interface {
 	MakeDir(dirname string) error
 }
 
-type FileRepository struct{}
+type fileRepository struct{}
+
+func NewFileRepository() FileRepository {
+	return &fileRepository{}
+}
 
 // SaveFile saves the uploaded file content to the server's file system
-func (r *FileRepository) SaveFile(filename string, content []byte) error {
+func (r *fileRepository) SaveFile(filename string, content []byte) error {
 	return os.WriteFile(filename, content, 0644)
 }
 
 // ReadFile reads the content of a file from the server's file system
-func (r *FileRepository) ReadFile(filename string) ([]byte, error) {
+func (r *fileRepository) ReadFile(filename string) ([]byte, error) {
 	return os.ReadFile(filename)
 }
 
 // FileExists checks if a file already exists
-func (r *FileRepository) FileExists(filename string) bool {
+func (r *fileRepository) FileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	if err != nil && !os.IsNotExist(err) {
 		log.Printf("Error checking file: %v\n", err)
@@ -36,7 +40,7 @@ func (r *FileRepository) FileExists(filename string) bool {
 	return !os.IsNotExist(err)
 }
 
-func (r *FileRepository) RemoveFile(filename string) error {
+func (r *fileRepository) RemoveFile(filename string) error {
 	if !r.FileExists(filename) {
 		return fmt.Errorf("file %s does not exist", filename)
 	}
@@ -44,7 +48,7 @@ func (r *FileRepository) RemoveFile(filename string) error {
 }
 
 // DirExists checks if a directory already exists
-func (r *FileRepository) DirExists(dirname string) bool {
+func (r *fileRepository) DirExists(dirname string) bool {
 	info, err := os.Stat(dirname)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -56,6 +60,6 @@ func (r *FileRepository) DirExists(dirname string) bool {
 }
 
 // MakeDir creates a new directory with the specified name
-func (r *FileRepository) MakeDir(dirname string) error {
+func (r *fileRepository) MakeDir(dirname string) error {
 	return os.MkdirAll(dirname, os.ModePerm)
 }

@@ -8,7 +8,12 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
-	"github.com/z4fL/fp-ai-golang-neurons/handler"
+	"github.com/z4fL/fp-ai-golang-neurons/api"
+	"github.com/z4fL/fp-ai-golang-neurons/db"
+	"github.com/z4fL/fp-ai-golang-neurons/model"
+	"github.com/z4fL/fp-ai-golang-neurons/repository"
+	"github.com/z4fL/fp-ai-golang-neurons/service"
+	"github.com/z4fL/fp-ai-golang-neurons/utility"
 )
 
 const defaultPort = "8080"
@@ -19,23 +24,37 @@ func main() {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
+	db := db.NewDB()
+	dbCredential, err := utility.GetDBCredential()
+	if err != nil {
+		log.Fatalf("Error getting DB credentials: %v", err)
+	}
+
+	conn, err := db.Connect(dbCredential)
+	if err != nil {
+		panic(err)
+	}
+
+	conn.AutoMigrate(&model.User{}, &model.Session{})
+
 	// Retrieve the Hugging Face token from the environment variables
-	handler.Token = os.Getenv("HUGGINGFACE_TOKEN")
-	if handler.Token == "" {
+	token := os.Getenv("HUGGINGFACE_TOKEN")
+	if token == "" {
 		log.Fatal("Environment variable HUGGINGFACE_TOKEN isn't set in the .env file")
 	}
 
+	userRepo := repository.NewUserRepository(conn)
+	sessionRepo := repository.NewSessionRepo(conn)
+	fileRepo := repository.NewFileRepository()
+
+	userService := service.NewUserService(userRepo)
+	sessionService := service.NewSessionService(sessionRepo)
+	fileService := service.NewFileService(fileRepo)
+	aiService := service.NewAIService(&http.Client{})
+
 	// Set up the router
 	router := mux.NewRouter()
-
-	// File upload endpoint
-	router.HandleFunc("/upload", handler.HandleUpload).Methods("POST")
-
-	// Chat endpoint
-	router.HandleFunc("/chat", handler.HandleChat).Methods("POST")
-
-	// Endpoint to remove the session file (data-series.csv) from the server.
-	router.HandleFunc("/remove-session", handler.HandleRemoveSession).Methods("POST")
+	api.RegisterRoutes(token, router, userService, sessionService, fileService, aiService)
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
@@ -44,6 +63,20 @@ func main() {
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	}).Handler(router)
+
+	// List all routes
+	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+		pathTemplate, err := route.GetPathTemplate()
+		if err != nil {
+			return err
+		}
+		methods, err := route.GetMethods()
+		if err != nil {
+			return err
+		}
+		log.Printf("Route: %s %s", methods, pathTemplate)
+		return nil
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
