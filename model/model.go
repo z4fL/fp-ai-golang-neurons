@@ -1,5 +1,33 @@
 package model
 
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
+
+type User struct {
+	gorm.Model
+	Username string `gorm:"type:varchar(100);unique" json:"username"`
+	Password string `gorm:"type:varchar(100)" json:"password"`
+}
+
+type Session struct {
+	gorm.Model
+	Token    string    `json:"token"`
+	Username string    `json:"username"`
+	Expiry   time.Time `json:"expiry"`
+}
+
+type DBCredential struct {
+	Host         string
+	Username     string
+	Password     string
+	DatabaseName string
+	Port         int
+	Schema       string
+}
+
 type Response struct {
 	Status string `json:"status"`
 	Answer string `json:"answer"`

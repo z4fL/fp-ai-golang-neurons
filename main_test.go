@@ -12,10 +12,12 @@ import (
 )
 
 var _ = Describe("FileService", func() {
-	var fileService *service.FileService
+	var fileService service.FileService
 
 	BeforeEach(func() {
-		fileService = service.NewFileService(&repository.FileRepository{})
+		fileRepo := repository.NewFileRepository()
+
+		fileService = service.NewFileService(fileRepo)
 	})
 
 	Describe("ProcessFile", func() {
@@ -60,12 +62,12 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 var _ = Describe("AIService", func() {
 	var (
 		mockClient *MockClient
-		aiService  *service.AIService
+		aiService  service.AIService
 	)
 
 	BeforeEach(func() {
 		mockClient = &MockClient{}
-		aiService = &service.AIService{Client: mockClient}
+		aiService = service.NewAIService(mockClient)
 	})
 
 	Describe("AnalyzeData", func() {

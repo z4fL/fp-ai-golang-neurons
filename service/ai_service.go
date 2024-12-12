@@ -15,11 +15,23 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-type AIService struct {
+type AIService interface {
+	AnalyzeData(table map[string][]string, query, token string) (string, error)
+	AnalyzeFile(table map[string][]string, queries []string, token string) (string, error)
+	ChatWithAI(context, query, token string) (string, error)
+}
+
+func NewAIService(client HTTPClient) AIService {
+	return &aiService{
+		Client: client,
+	}
+}
+
+type aiService struct {
 	Client HTTPClient
 }
 
-func (s *AIService) AnalyzeData(table map[string][]string, query, token string) (string, error) {
+func (s *aiService) AnalyzeData(table map[string][]string, query, token string) (string, error) {
 	if len(table) == 0 {
 		return "", errors.New("table cannot be empty")
 	}
@@ -95,7 +107,7 @@ func (s *AIService) AnalyzeData(table map[string][]string, query, token string) 
 	return answer, nil
 }
 
-func (s *AIService) AnalyzeFile(table map[string][]string, queries []string, token string) (string, error) {
+func (s *aiService) AnalyzeFile(table map[string][]string, queries []string, token string) (string, error) {
 	results := make([]string, 0, len(queries))
 
 	for _, query := range queries {
@@ -111,7 +123,7 @@ func (s *AIService) AnalyzeFile(table map[string][]string, queries []string, tok
 	return answer, nil
 }
 
-func (s *AIService) ChatWithAI(context, query, token string) (string, error) {
+func (s *aiService) ChatWithAI(context, query, token string) (string, error) {
 	url := "https://api-inference.huggingface.co/models/microsoft/Phi-3.5-mini-instruct/v1/chat/completions"
 
 	var messages []model.Message
