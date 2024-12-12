@@ -54,13 +54,13 @@ func (s *fileService) ProcessFile(fileContent string) (map[string][]string, erro
 			contentFile = fileContent
 			err := s.Repo.SaveFile(filePath, []byte(fileContent))
 			if err != nil {
-				return nil, fmt.Errorf("error saving file: %v", err)
+				return nil, fmt.Errorf("failed to save file")
 			}
 		}
 	} else {
 		err := s.Repo.SaveFile(filePath, []byte(fileContent))
 		if err != nil {
-			return nil, fmt.Errorf("error saving file: %v", err)
+			return nil, fmt.Errorf("failed to save file")
 		}
 
 		contentFile = fileContent
@@ -79,7 +79,7 @@ func (s *fileService) ParseCSV(fileContent string) (map[string][]string, error) 
 
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, fmt.Errorf("error reading CSV: %v", err)
+		return nil, fmt.Errorf("invalid CSV data")
 	}
 
 	if len(records) <= 1 {
