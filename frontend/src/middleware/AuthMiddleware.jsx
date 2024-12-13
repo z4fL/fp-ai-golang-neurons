@@ -1,10 +1,9 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import Cookies from "js-cookie";
 
 const AuthMiddleware = ({ children }) => {
   const navigate = useNavigate();
-  const isAuthenticated = !!Cookies.get("session_token");
+  const isAuthenticated = !!localStorage.getItem("session_token");
 
   useEffect(() => {
     if (!isAuthenticated) {

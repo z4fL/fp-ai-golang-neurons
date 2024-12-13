@@ -27,9 +27,8 @@ const Login = () => {
       });
 
       const res = await req.json()
-      console.log(res.answer);
-      
       if (!req.ok) throw new Error(res.answer);
+      localStorage.setItem('session_token', res.answer);
       navigate("/");
     } catch (error) {
       setIsError(true);
