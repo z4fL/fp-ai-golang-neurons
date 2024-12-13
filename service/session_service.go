@@ -13,6 +13,7 @@ type SessionService interface {
 	UpdateSession(session model.Session) error
 	DeleteSession(sessionToken string) error
 	SessionAvailID(id uint) error
+	SessionAvailToken(token string) (model.Session, error)
 	TokenExpired(session model.Session) bool
 	TokenValidity(token string) (model.Session, error)
 	GetUserIDByToken(token string) (uint, error)
@@ -32,6 +33,9 @@ func (s *sessionService) GetUserIDByToken(token string) (uint, error) {
 
 func (s *sessionService) SessionAvailID(id uint) error {
 	return s.sessionRepository.SessionAvailID(id)
+}
+func (s *sessionService) SessionAvailToken(token string) (model.Session, error) {
+	return s.sessionRepository.SessionAvailToken(token)
 }
 
 func (s *sessionService) AddSession(session model.Session) error {

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,7 +34,7 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := api.userService.Login(credentials.Username, credentials.Password)
+	_, err := api.userService.Login(credentials.Username, credentials.Password)
 	if err != nil {
 		utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Invalid username or password")
 		return
@@ -55,39 +56,31 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Path:     "/",
-		Value:    sessionToken,
-		Expires:  expiresAt,
-		HttpOnly: true,                  // Supaya cookie tidak bisa diakses via JavaScript
-		SameSite: http.SameSiteNoneMode, // Cookie bisa dikirim cross-origin
-		Secure:   false,                 // Set ke true kalau pakai HTTPS
-	})
-
-	utility.JSONResponse(w, http.StatusOK, "success", "user "+user.Username+" loggin successfully")
+	utility.JSONResponse(w, http.StatusOK, "success", sessionToken)
 }
 
 func (api *API) Logout(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("session_token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Internal Server Error")
-			return
-		}
-
-		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Internal Server Error")
+	// Ambil token dari header Authorization
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Missing or invalid token")
 		return
 	}
-	sessionToken := c.Value
 
-	api.sessionService.DeleteSession(sessionToken)
+	token := strings.TrimPrefix(authHeader, "Bearer ")
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    "session_token",
-		Value:   "",
-		Expires: time.Now(),
-	})
+	// Validasi token
+	_, err := api.sessionService.SessionAvailToken(token)
+	if err != nil {
+		utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Invalid token")
+		return
+	}
+
+	err = api.sessionService.DeleteSession(token)
+	if err != nil {
+		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to logout")
+		return
+	}
 
 	utility.JSONResponse(w, http.StatusOK, "success", "logout successfully")
 }

@@ -3,8 +3,10 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/z4fL/fp-ai-golang-neurons/service"
+	"github.com/z4fL/fp-ai-golang-neurons/utility"
 )
 
 type ContextKey string
@@ -14,22 +16,25 @@ const UserIDKey ContextKey = "userID"
 func AuthMiddleware(sessionService service.SessionService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Ambil session_token dari cookie
-			cookie, err := r.Cookie("session_token")
-			if err != nil {
-				http.Error(w, "Unauthorized: Missing session token", http.StatusUnauthorized)
+			// Ambil token dari header Authorization
+			authHeader := r.Header.Get("Authorization")
+			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Missing or invalid token")
 				return
 			}
 
-			// Validasi session_token dan ambil userID
-			userID, err := sessionService.GetUserIDByToken(cookie.Value)
+			// Ambil token tanpa prefix "Bearer "
+			token := strings.TrimPrefix(authHeader, "Bearer ")
+
+			// Ambil session berdasarkan token
+			session, err := sessionService.TokenValidity(token)
 			if err != nil {
-				http.Error(w, "Unauthorized: Invalid session token", http.StatusUnauthorized)
+				utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Invalid token")
 				return
 			}
 
 			// Masukkan userID ke context
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), UserIDKey, session.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
