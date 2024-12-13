@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"gorm.io/gorm"
 )
@@ -9,8 +11,9 @@ type SessionsRepository interface {
 	AddSessions(session model.Session) error
 	DeleteSession(token string) error
 	UpdateSessions(session model.Session) error
-	SessionAvailName(name string) error
+	SessionAvailID(id uint) error
 	SessionAvailToken(token string) (model.Session, error)
+	GetUserIDByToken(token string) (uint, error)
 }
 
 type sessionsRepoImpl struct {
@@ -19,6 +22,14 @@ type sessionsRepoImpl struct {
 
 func NewSessionRepo(db *gorm.DB) SessionsRepository {
 	return &sessionsRepoImpl{db}
+}
+
+func (s *sessionsRepoImpl) GetUserIDByToken(token string) (uint, error) {
+	var session model.Session
+	if err := s.db.Where("token = ?", token).First(&session).Error; err != nil {
+		return 0, errors.New("invalid session token")
+	}
+	return session.UserID, nil
 }
 
 func (s *sessionsRepoImpl) AddSessions(session model.Session) error {
@@ -40,7 +51,7 @@ func (s *sessionsRepoImpl) DeleteSession(token string) error {
 }
 
 func (s *sessionsRepoImpl) UpdateSessions(session model.Session) error {
-	result := s.db.Where("username=?", session.Username).Updates(model.Session{Token: session.Token, Expiry: session.Expiry})
+	result := s.db.Where("user_id=?", session.UserID).Updates(model.Session{Token: session.Token, Expiry: session.Expiry})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -48,9 +59,9 @@ func (s *sessionsRepoImpl) UpdateSessions(session model.Session) error {
 	return nil
 }
 
-func (s *sessionsRepoImpl) SessionAvailName(name string) error {
+func (s *sessionsRepoImpl) SessionAvailID(id uint) error {
 	var session model.Session
-	result := s.db.Where(&model.Session{Username: name}).First(&session)
+	result := s.db.Where(&model.Session{UserID: id}).First(&session)
 
 	if result.Error != nil {
 		return result.Error

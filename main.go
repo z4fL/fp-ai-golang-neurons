@@ -35,7 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	conn.AutoMigrate(&model.User{}, &model.Session{})
+	conn.AutoMigrate(&model.User{}, &model.Session{}, &model.Chat{})
 
 	// Retrieve the Hugging Face token from the environment variables
 	token := os.Getenv("HUGGINGFACE_TOKEN")
@@ -46,37 +46,28 @@ func main() {
 	userRepo := repository.NewUserRepository(conn)
 	sessionRepo := repository.NewSessionRepo(conn)
 	fileRepo := repository.NewFileRepository()
+	chatRepo := repository.NewChatRepository(conn)
 
 	userService := service.NewUserService(userRepo)
 	sessionService := service.NewSessionService(sessionRepo)
 	fileService := service.NewFileService(fileRepo)
 	aiService := service.NewAIService(&http.Client{})
+	chatService := service.NewChatService(chatRepo)
 
 	// Set up the router
 	router := mux.NewRouter()
-	api.RegisterRoutes(token, router, userService, sessionService, fileService, aiService)
+	api.RegisterRoutes(token, router, userService, sessionService, fileService, aiService, chatService)
+
+	// List all routes
+	utility.ListRoutes(router)
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5173"},
-		// AllowedOrigins: []string{"*"}, // Allow all origins
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Content-Type", "Authorization"},
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
 	}).Handler(router)
-
-	// List all routes
-	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		pathTemplate, err := route.GetPathTemplate()
-		if err != nil {
-			return err
-		}
-		methods, err := route.GetMethods()
-		if err != nil {
-			return err
-		}
-		log.Printf("Route: %s %s", methods, pathTemplate)
-		return nil
-	})
 
 	port := os.Getenv("PORT")
 	if port == "" {

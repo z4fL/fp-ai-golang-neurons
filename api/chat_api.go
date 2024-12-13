@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
+	"github.com/z4fL/fp-ai-golang-neurons/middleware"
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/utility"
 	"github.com/z4fL/fp-ai-golang-neurons/utility/projectpath"
@@ -16,7 +18,7 @@ const dataFilePath = "upload/data-series.csv"
 
 var dir = filepath.Join(projectpath.Root, dataFilePath)
 
-func (api *API) Chat(w http.ResponseWriter, r *http.Request) {
+func (h *API) ChatWithAI(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Failed to read request body")
@@ -38,27 +40,27 @@ func (api *API) Chat(w http.ResponseWriter, r *http.Request) {
 	case "tapas":
 		filePath := dir
 
-		if !api.fileService.GetRepo().FileExists(filePath) {
+		if !h.fileService.GetRepo().FileExists(filePath) {
 			utility.JSONResponse(w, http.StatusNotFound, "failed", "Data file not found")
 			log.Printf("File not found: %s", filePath)
 			return
 		}
 
-		contentFile, err := api.fileService.GetRepo().ReadFile(filePath)
+		contentFile, err := h.fileService.GetRepo().ReadFile(filePath)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to read data file")
 			log.Printf("ReadFile error: %v", err)
 			return
 		}
 
-		parsedData, err := api.fileService.ParseCSV(string(contentFile))
+		parsedData, err := h.fileService.ParseCSV(string(contentFile))
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to parse CSV data")
 			log.Printf("ParseCSV error: %v", err)
 			return
 		}
 
-		answer, err = api.aiService.AnalyzeData(parsedData, chatReq.Query, api.token)
+		answer, err = h.aiService.AnalyzeData(parsedData, chatReq.Query, h.token)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to analyze data with AI")
 			log.Printf("AnalyzeData error: %v", err)
@@ -67,7 +69,7 @@ func (api *API) Chat(w http.ResponseWriter, r *http.Request) {
 		log.Println("Chat request processed successfully with google/tapas-base-finetuned-wtq")
 
 	case "phi":
-		answer, err = api.aiService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, api.token)
+		answer, err = h.aiService.ChatWithAI(chatReq.PreviousChat, chatReq.Query, h.token)
 		if err != nil {
 			utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to chat with AI Phi")
 			log.Printf("ChatWithAI error: %v", err)
@@ -84,14 +86,55 @@ func (api *API) Chat(w http.ResponseWriter, r *http.Request) {
 	utility.JSONResponse(w, http.StatusOK, "success", answer)
 }
 
-func (api *API) RemoveSession(w http.ResponseWriter, r *http.Request) {
-	if !api.fileService.GetRepo().FileExists(dir) {
+func (h *API) CreateChat(w http.ResponseWriter, r *http.Request) {
+	// Ambil userID dari context
+	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
+	userID := strconv.FormatUint(uint64(userIDUint), 10)
+
+	var req struct {
+		ChatHistory []map[string]any `json:"chat_history"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid input")
+		return
+	}
+
+	if err := h.chatService.CreateChat(userID, req.ChatHistory); err != nil {
+		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to create chat")
+		return
+	}
+
+	utility.JSONResponse(w, http.StatusCreated, "success", "Chat created successfully")
+}
+
+func (h *API) AddMessage(w http.ResponseWriter, r *http.Request) {
+	// Ambil userID dari context
+	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
+	userID := strconv.FormatUint(uint64(userIDUint), 10)
+
+	var req map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid input")
+		return
+	}
+
+	if err := h.chatService.AddMessage(userID, req); err != nil {
+		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to add chat")
+		return
+	}
+
+	utility.JSONResponse(w, http.StatusOK, "success", "Chat  successfully")
+}
+
+func (h *API) RemoveSession(w http.ResponseWriter, r *http.Request) {
+	if !h.fileService.GetRepo().FileExists(dir) {
 		utility.JSONResponse(w, http.StatusNotFound, "failed", "File not found")
 		log.Printf("File not found: %s", dir)
 		return
 	}
 
-	if err := api.fileService.GetRepo().RemoveFile(dir); err != nil {
+	if err := h.fileService.GetRepo().RemoveFile(dir); err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to delete file")
 		log.Printf("Failed to delete file %s: %v", dir, err)
 		return

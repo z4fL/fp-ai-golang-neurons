@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -14,9 +15,17 @@ type User struct {
 
 type Session struct {
 	gorm.Model
-	Token    string    `json:"token"`
-	Username string    `json:"username"`
-	Expiry   time.Time `json:"expiry"`
+	Token  string    `json:"token"`
+	UserID uint      `json:"user_id"`
+	Expiry time.Time `json:"expiry"`
+}
+
+type Chat struct {
+	ID          uint           `gorm:"primaryKey"`
+	UserID      string         `gorm:"index;not null"`
+	ChatHistory datatypes.JSON `gorm:"type:jsonb"` // Simpan history sebagai JSONB
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 type DBCredential struct {
