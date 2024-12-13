@@ -18,11 +18,11 @@ type FileService interface {
 }
 
 type fileService struct {
-	Repo repository.FileRepository
+	repo repository.FileRepository
 }
 
 func NewFileService(repo repository.FileRepository) FileService {
-	return &fileService{Repo: repo}
+	return &fileService{repo}
 }
 
 func (s *fileService) ProcessFile(fileContent string) (map[string][]string, error) {
@@ -31,8 +31,8 @@ func (s *fileService) ProcessFile(fileContent string) (map[string][]string, erro
 	}
 
 	dir := filepath.Join(projectpath.Root, "upload")
-	if !s.Repo.DirExists(dir) {
-		if err := s.Repo.MakeDir(dir); err != nil {
+	if !s.repo.DirExists(dir) {
+		if err := s.repo.MakeDir(dir); err != nil {
 			return nil, err
 		}
 	}
@@ -42,8 +42,8 @@ func (s *fileService) ProcessFile(fileContent string) (map[string][]string, erro
 
 	var contentFile string
 
-	if s.Repo.FileExists(filePath) {
-		existingContent, err := s.Repo.ReadFile(filePath)
+	if s.repo.FileExists(filePath) {
+		existingContent, err := s.repo.ReadFile(filePath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading file: %v", err)
 		}
@@ -52,13 +52,13 @@ func (s *fileService) ProcessFile(fileContent string) (map[string][]string, erro
 			contentFile = string(existingContent)
 		} else {
 			contentFile = fileContent
-			err := s.Repo.SaveFile(filePath, []byte(fileContent))
+			err := s.repo.SaveFile(filePath, []byte(fileContent))
 			if err != nil {
 				return nil, fmt.Errorf("failed to save file")
 			}
 		}
 	} else {
-		err := s.Repo.SaveFile(filePath, []byte(fileContent))
+		err := s.repo.SaveFile(filePath, []byte(fileContent))
 		if err != nil {
 			return nil, fmt.Errorf("failed to save file")
 		}
@@ -103,5 +103,5 @@ func (s *fileService) ParseCSV(fileContent string) (map[string][]string, error) 
 }
 
 func (s *fileService) GetRepo() repository.FileRepository {
-	return s.Repo
+	return s.repo
 }

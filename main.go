@@ -35,7 +35,7 @@ func main() {
 		panic(err)
 	}
 
-	conn.AutoMigrate(&model.User{}, &model.Session{})
+	conn.AutoMigrate(&model.User{}, &model.Session{}, &model.Chat{})
 
 	// Retrieve the Hugging Face token from the environment variables
 	token := os.Getenv("HUGGINGFACE_TOKEN")
@@ -46,15 +46,17 @@ func main() {
 	userRepo := repository.NewUserRepository(conn)
 	sessionRepo := repository.NewSessionRepo(conn)
 	fileRepo := repository.NewFileRepository()
+	chatRepo := repository.NewChatRepository(conn)
 
 	userService := service.NewUserService(userRepo)
 	sessionService := service.NewSessionService(sessionRepo)
 	fileService := service.NewFileService(fileRepo)
 	aiService := service.NewAIService(&http.Client{})
+	chatService := service.NewChatService(chatRepo)
 
 	// Set up the router
 	router := mux.NewRouter()
-	api.RegisterRoutes(token, router, userService, sessionService, fileService, aiService)
+	api.RegisterRoutes(token, router, userService, sessionService, fileService, aiService, chatService)
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
