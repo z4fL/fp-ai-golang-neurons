@@ -60,7 +60,7 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		Value:    sessionToken,
 		Expires:  expiresAt,
-		HttpOnly: true,                  // Supaya cookie nggak bisa diakses via JavaScript
+		HttpOnly: true,                  // Supaya cookie tidak bisa diakses via JavaScript
 		SameSite: http.SameSiteNoneMode, // Cookie bisa dikirim cross-origin
 		Secure:   false,                 // Set ke true kalau pakai HTTPS
 	})
