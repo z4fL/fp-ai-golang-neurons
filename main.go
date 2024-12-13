@@ -58,6 +58,9 @@ func main() {
 	router := mux.NewRouter()
 	api.RegisterRoutes(token, router, userService, sessionService, fileService, aiService, chatService)
 
+	// List all routes
+	utility.ListRoutes(router)
+
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},
@@ -65,20 +68,6 @@ func main() {
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}).Handler(router)
-
-	// List all routes
-	router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		pathTemplate, err := route.GetPathTemplate()
-		if err != nil {
-			return err
-		}
-		methods, err := route.GetMethods()
-		if err != nil {
-			return err
-		}
-		log.Printf("Route: %s %s", methods, pathTemplate)
-		return nil
-	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
