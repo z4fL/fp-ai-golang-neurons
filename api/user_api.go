@@ -41,9 +41,9 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 
 	sessionToken := uuid.NewString()
 	expiresAt := time.Now().Add(5 * time.Hour)
-	session := model.Session{Token: sessionToken, Username: credentials.Username, Expiry: expiresAt}
+	session := model.Session{Token: sessionToken, UserID: credentials.ID, Expiry: expiresAt}
 
-	err = api.sessionService.SessionAvailName(session.Username)
+	err = api.sessionService.SessionAvailID(session.UserID)
 	if err != nil {
 		err = api.sessionService.AddSession(session)
 	} else {
@@ -56,10 +56,13 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    "session_token",
-		Path:    "/",
-		Value:   sessionToken,
-		Expires: expiresAt,
+		Name:     "session_token",
+		Path:     "/",
+		Value:    sessionToken,
+		Expires:  expiresAt,
+		HttpOnly: true,                  // Supaya cookie nggak bisa diakses via JavaScript
+		SameSite: http.SameSiteNoneMode, // Cookie bisa dikirim cross-origin
+		Secure:   false,                 // Set ke true kalau pakai HTTPS
 	})
 
 	utility.JSONResponse(w, http.StatusOK, "success", "user "+user.Username+" loggin successfully")

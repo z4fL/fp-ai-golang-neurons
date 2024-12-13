@@ -15,9 +15,9 @@ type User struct {
 
 type Session struct {
 	gorm.Model
-	Token    string    `json:"token"`
-	Username string    `json:"username"`
-	Expiry   time.Time `json:"expiry"`
+	Token  string    `json:"token"`
+	UserID uint      `json:"user_id"`
+	Expiry time.Time `json:"expiry"`
 }
 
 type Chat struct {

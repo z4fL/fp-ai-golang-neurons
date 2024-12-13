@@ -11,15 +11,21 @@ import (
 )
 
 type MockSessionsRepository struct {
-	SessionAvailNameFunc  func(username string) error
+	SessionAvailIDFunc    func(id uint) error
 	AddSessionsFunc       func(session model.Session) error
 	UpdateSessionsFunc    func(session model.Session) error
 	DeleteSessionFunc     func(sessionToken string) error
 	SessionAvailTokenFunc func(token string) (model.Session, error)
+	GetUserIDByTokenFunc  func(token string) (uint, error)
 }
 
-func (m *MockSessionsRepository) SessionAvailName(username string) error {
-	return m.SessionAvailNameFunc(username)
+// GetUserByToken implements repository.SessionsRepository.
+func (m *MockSessionsRepository) GetUserIDByToken(token string) (uint, error) {
+	return m.GetUserIDByTokenFunc(token)
+}
+
+func (m *MockSessionsRepository) SessionAvailID(id uint) error {
+	return m.SessionAvailIDFunc(id)
 }
 
 func (m *MockSessionsRepository) AddSessions(session model.Session) error {
@@ -49,23 +55,23 @@ var _ = Describe("SessionService", func() {
 		sessionService = service.NewSessionService(mockRepo)
 	})
 
-	Describe("SessionAvailName", func() {
+	Describe("SessionAvailID", func() {
 		It("should return an error if session name is not available", func() {
-			mockRepo.SessionAvailNameFunc = func(username string) error {
+			mockRepo.SessionAvailIDFunc = func(id uint) error {
 				return errors.New("username not available")
 			}
 
-			err := sessionService.SessionAvailName("testuser")
+			err := sessionService.SessionAvailID(1)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("username not available"))
 		})
 
 		It("should return nil if session name is available", func() {
-			mockRepo.SessionAvailNameFunc = func(username string) error {
+			mockRepo.SessionAvailIDFunc = func(id uint) error {
 				return nil
 			}
 
-			err := sessionService.SessionAvailName("testuser")
+			err := sessionService.SessionAvailID(1)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -76,7 +82,7 @@ var _ = Describe("SessionService", func() {
 				return errors.New("failed to add session")
 			}
 
-			err := sessionService.AddSession(model.Session{Username: "testuser"})
+			err := sessionService.AddSession(model.Session{UserID: 1})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("failed to add session"))
 		})
@@ -86,7 +92,7 @@ var _ = Describe("SessionService", func() {
 				return nil
 			}
 
-			err := sessionService.AddSession(model.Session{Username: "testuser"})
+			err := sessionService.AddSession(model.Session{UserID: 1})
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -97,7 +103,7 @@ var _ = Describe("SessionService", func() {
 				return errors.New("failed to update session")
 			}
 
-			err := sessionService.UpdateSession(model.Session{Username: "testuser"})
+			err := sessionService.UpdateSession(model.Session{UserID: 1})
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("failed to update session"))
 		})
@@ -107,7 +113,7 @@ var _ = Describe("SessionService", func() {
 				return nil
 			}
 
-			err := sessionService.UpdateSession(model.Session{Username: "testuser"})
+			err := sessionService.UpdateSession(model.Session{UserID: 1})
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -177,6 +183,34 @@ var _ = Describe("SessionService", func() {
 		It("should return false if token is not expired", func() {
 			validSession := model.Session{Expiry: time.Now().Add(time.Hour)}
 			Expect(sessionService.TokenExpired(validSession)).To(BeFalse())
+		})
+	})
+
+	Describe("GetUserIDByToken", func() {
+		It("should return an error if token is invalid", func() {
+			mockRepo.GetUserIDByTokenFunc = func(token string) (uint, error) {
+				return 0, errors.New("invalid token")
+			}
+
+			_, err := sessionService.GetUserIDByToken("invalidtoken")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("invalid token"))
+		})
+
+		It("should return user if token is valid", func() {
+			mockRepo.GetUserIDByTokenFunc = func(token string) (uint, error) {
+				user := &model.User{
+					Username: "Test User",
+				}
+				user.ID = 1
+
+				return user.ID, nil
+			}
+
+			user, err := sessionService.GetUserIDByToken("validtoken")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(user).NotTo(BeNil())
+			Expect(user).To(Equal(uint(1)))
 		})
 	})
 })

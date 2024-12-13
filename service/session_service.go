@@ -12,9 +12,10 @@ type SessionService interface {
 	AddSession(session model.Session) error
 	UpdateSession(session model.Session) error
 	DeleteSession(sessionToken string) error
-	SessionAvailName(username string) error
+	SessionAvailID(id uint) error
 	TokenExpired(session model.Session) bool
 	TokenValidity(token string) (model.Session, error)
+	GetUserIDByToken(token string) (uint, error)
 }
 
 type sessionService struct {
@@ -25,8 +26,12 @@ func NewSessionService(sessionRepository repository.SessionsRepository) SessionS
 	return &sessionService{sessionRepository}
 }
 
-func (s *sessionService) SessionAvailName(username string) error {
-	return s.sessionRepository.SessionAvailName(username)
+func (s *sessionService) GetUserIDByToken(token string) (uint, error) {
+	return s.sessionRepository.GetUserIDByToken(token)
+}
+
+func (s *sessionService) SessionAvailID(id uint) error {
+	return s.sessionRepository.SessionAvailID(id)
 }
 
 func (s *sessionService) AddSession(session model.Session) error {

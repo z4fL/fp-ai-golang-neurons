@@ -6,8 +6,9 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
-	"github.com/gorilla/mux"
+	"github.com/z4fL/fp-ai-golang-neurons/middleware"
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/utility"
 	"github.com/z4fL/fp-ai-golang-neurons/utility/projectpath"
@@ -86,18 +87,21 @@ func (h *API) ChatWithAI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *API) CreateChat(w http.ResponseWriter, r *http.Request) {
+	// Ambil userID dari context
+	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
+	userID := strconv.FormatUint(uint64(userIDUint), 10)
+
 	var req struct {
-		UserID      string           `json:"user_id"`
 		ChatHistory []map[string]any `json:"chat_history"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid input")
 		return
 	}
 
-	if err := h.chatService.CreateChat(req.UserID, req.ChatHistory); err != nil {
-		http.Error(w, "Failed to create chat", http.StatusInternalServerError)
+	if err := h.chatService.CreateChat(userID, req.ChatHistory); err != nil {
+		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to create chat")
 		return
 	}
 
@@ -105,22 +109,22 @@ func (h *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *API) AddMessage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["userID"]
+	// Ambil userID dari context
+	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
+	userID := strconv.FormatUint(uint64(userIDUint), 10)
 
 	var req map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid input")
 		return
 	}
 
 	if err := h.chatService.AddMessage(userID, req); err != nil {
-		http.Error(w, "Failed to add message", http.StatusInternalServerError)
+		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to add chat")
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Message added successfully"})
+	utility.JSONResponse(w, http.StatusOK, "success", "Chat  successfully")
 }
 
 func (h *API) RemoveSession(w http.ResponseWriter, r *http.Request) {

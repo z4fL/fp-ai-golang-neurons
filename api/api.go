@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/z4fL/fp-ai-golang-neurons/middleware"
 	"github.com/z4fL/fp-ai-golang-neurons/service"
 )
 
@@ -30,14 +31,19 @@ func NewAPI(token string, userService service.UserService, sessionService servic
 func RegisterRoutes(token string, router *mux.Router, userService service.UserService, sessionService service.SessionService, fileService service.FileService, aiService service.AIService, chatService service.ChatService) {
 	api := NewAPI(token, userService, sessionService, fileService, aiService, chatService)
 
+	authMiddleware := middleware.AuthMiddleware(sessionService)
+	securedRoutes := router.PathPrefix("/").Subrouter()
+	securedRoutes.Use(authMiddleware)
+
 	router.HandleFunc("/register", api.Register).Methods("POST")
 	router.HandleFunc("/login", api.Login).Methods("POST")
-	router.HandleFunc("/logout/{id}", api.Logout).Methods("POST")
 
-	router.HandleFunc("/upload", api.Upload).Methods("POST")
-	router.HandleFunc("/chat-with-ai", api.ChatWithAI).Methods("POST")
+	securedRoutes.HandleFunc("/logout", api.Logout).Methods("POST")
 
-	router.HandleFunc("/chats", api.CreateChat).Methods("POST")
-	router.HandleFunc("/chats/{userID}", api.AddMessage).Methods("PUT")
-	router.HandleFunc("/remove-session", api.RemoveSession).Methods("POST")
+	securedRoutes.HandleFunc("/upload", api.Upload).Methods("POST")
+	securedRoutes.HandleFunc("/chat-with-ai", api.ChatWithAI).Methods("POST")
+
+	securedRoutes.HandleFunc("/chats", api.CreateChat).Methods("POST")
+	securedRoutes.HandleFunc("/chats", api.AddMessage).Methods("PATCH")
+	securedRoutes.HandleFunc("/remove-session", api.RemoveSession).Methods("POST")
 }
