@@ -8,7 +8,6 @@ const Login = () => {
 
   const navigate = useNavigate();
 
-
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
 
   const handleSubmit = async (e) => {

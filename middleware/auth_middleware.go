@@ -26,10 +26,10 @@ func AuthMiddleware(sessionService service.SessionService) func(http.Handler) ht
 			// Ambil token tanpa prefix "Bearer "
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
-			// Ambil session berdasarkan token
+			// cek session berdasarkan token
 			session, err := sessionService.TokenValidity(token)
 			if err != nil {
-				utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Invalid token")
+				utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Token is Expired")
 				return
 			}
 

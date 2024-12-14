@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -34,7 +35,7 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := api.userService.Login(credentials.Username, credentials.Password)
+	user, err := api.userService.Login(credentials.Username, credentials.Password)
 	if err != nil {
 		utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Invalid username or password")
 		return
@@ -42,12 +43,14 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 
 	sessionToken := uuid.NewString()
 	expiresAt := time.Now().Add(5 * time.Hour)
-	session := model.Session{Token: sessionToken, UserID: credentials.ID, Expiry: expiresAt}
+	session := model.Session{Token: sessionToken, UserID: user.ID, Expiry: expiresAt}
 
 	err = api.sessionService.SessionAvailID(session.UserID)
 	if err != nil {
+		log.Print("Add session")
 		err = api.sessionService.AddSession(session)
 	} else {
+		log.Print("Update session")
 		err = api.sessionService.UpdateSession(session)
 	}
 
@@ -83,4 +86,26 @@ func (api *API) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utility.JSONResponse(w, http.StatusOK, "success", "logout successfully")
+}
+
+func (api *API) ValidateSession(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	session, err := api.sessionService.SessionAvailToken(token)
+	if err != nil || api.sessionService.TokenExpired(session) {
+		if err == nil {
+			api.sessionService.DeleteSession(token) // Hapus token expired
+			log.Print("successfully delete token")
+		}
+		http.Error(w, "Unauthorized: Invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	utility.JSONResponse(w, http.StatusOK, "success", "Token is valid")
 }
