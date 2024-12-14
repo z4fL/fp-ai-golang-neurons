@@ -71,10 +71,7 @@ const App = () => {
       const responseChat = await fetchChatResponse();
 
       // remove LOADING... chat and add responseChat
-      setChatHistory((prevChat) => {
-        const updatedChat = [...prevChat.slice(0, -1), responseChat];
-        return updatedChat;
-      });
+      setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
 
       if (chatHistory.length <= 3) {
         await createChatHandler(responseChat);
@@ -85,16 +82,21 @@ const App = () => {
       if (!file) setFile(null); // remove file
       setIsError(false);
     } catch (error) {
+      const errorChat = {
+        id: chatHistory.length + 1,
+        role: "assistant",
+        content: String(error),
+        type: "error",
+      };
+
       // remove LOADING... chat and error chat
-      setChatHistory((prevChat) => [
-        ...prevChat.slice(0, -1),
-        {
-          id: prevChat.length + 1,
-          role: "assistant",
-          content: String(error),
-          type: "error",
-        },
-      ]);
+      setChatHistory((prevChat) => [...prevChat.slice(0, -1), errorChat]);
+
+      if (chatHistory.length <= 3) {
+        await createChatHandler(errorChat);
+      } else {
+        await addMessageHandler(errorChat);
+      }
 
       setIsError(true);
       setIsLoading(false);
@@ -127,7 +129,7 @@ const App = () => {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error("Failed to fetch response");
+    if (!res.ok) throw new Error(data.answer);
 
     return {
       id: chatHistory.length + 1,
@@ -147,17 +149,27 @@ const App = () => {
       ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    return fetchWithToken(
-      `${golangBaseUrl}/chat-with-ai`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      },
-      token
-    );
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          json: () =>
+            Promise.resolve({ answer: "This is a dummy error response" }),
+          ok: false,
+        });
+      }, 1000);
+    });
+
+    // return fetchWithToken(
+    //   `${golangBaseUrl}/chat-with-ai`,
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify(payload),
+    //   },
+    //   token
+    // );
   };
 
   const handleUploadFile = () => {
@@ -255,6 +267,7 @@ const App = () => {
           <LoadChat />
         ) : (
           <ChatList
+            setIsError={setIsError}
             chatList={chatHistory}
             setIsLoading={setIsLoading}
             reloadChat={reloadChat}

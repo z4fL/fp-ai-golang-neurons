@@ -3,7 +3,13 @@ import { useEffect } from "react";
 import UserChat from "./Chat/UserChat";
 import AssistantChat from "./Chat/AssistantChat";
 
-const ChatList = ({ chatList, setIsLoading, reloadChat, isReload }) => {
+const ChatList = ({
+  chatList,
+  setIsLoading,
+  reloadChat,
+  isReload,
+  setIsError,
+}) => {
   const [displayResponse, setDisplayResponse] = useState("");
   const [isCompletedTyping, setIsCompletedTyping] = useState(false);
 
@@ -18,7 +24,7 @@ const ChatList = ({ chatList, setIsLoading, reloadChat, isReload }) => {
     if (isReload) {
       setDisplayResponse(lastChat.content);
       setIsCompletedTyping(true);
-      return
+      return;
     }
 
     setIsCompletedTyping(false);
@@ -57,6 +63,14 @@ const ChatList = ({ chatList, setIsLoading, reloadChat, isReload }) => {
 
     setIsAutoScrollEnabled(isAtBottom);
   };
+
+  useEffect(() => {
+    if (chatList.some((chat) => chat.type === "error")) {
+      setIsError(true);
+    } else {
+      setIsError(false);
+    }
+  }, [chatList]);
 
   return (
     <main
