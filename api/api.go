@@ -37,6 +37,7 @@ func RegisterRoutes(token string, router *mux.Router, userService service.UserSe
 
 	router.HandleFunc("/register", api.Register).Methods("POST")
 	router.HandleFunc("/login", api.Login).Methods("POST")
+	router.HandleFunc("/validate-session", api.ValidateSession).Methods("GET")
 
 	securedRoutes.HandleFunc("/logout", api.Logout).Methods("POST")
 
@@ -45,5 +46,5 @@ func RegisterRoutes(token string, router *mux.Router, userService service.UserSe
 
 	securedRoutes.HandleFunc("/chats", api.CreateChat).Methods("POST")
 	securedRoutes.HandleFunc("/chats", api.AddMessage).Methods("PATCH")
-	securedRoutes.HandleFunc("/remove-session", api.RemoveSession).Methods("POST")
+	// securedRoutes.HandleFunc("/remove-session", api.RemoveSession).Methods("POST")
 }

@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,12 +43,14 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 
 	sessionToken := uuid.NewString()
 	expiresAt := time.Now().Add(5 * time.Hour)
-	session := model.Session{Token: sessionToken, UserID: credentials.ID, Expiry: expiresAt}
+	session := model.Session{Token: sessionToken, UserID: user.ID, Expiry: expiresAt}
 
-	err = api.sessionService.SessionAvailID(session.UserID)
+	err = api.sessionService.SessionAvailID(user.ID)
 	if err != nil {
+		log.Print("Add session")
 		err = api.sessionService.AddSession(session)
 	} else {
+		log.Print("Update session")
 		err = api.sessionService.UpdateSession(session)
 	}
 
@@ -55,39 +59,53 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_token",
-		Path:     "/",
-		Value:    sessionToken,
-		Expires:  expiresAt,
-		HttpOnly: true,                  // Supaya cookie nggak bisa diakses via JavaScript
-		SameSite: http.SameSiteNoneMode, // Cookie bisa dikirim cross-origin
-		Secure:   false,                 // Set ke true kalau pakai HTTPS
-	})
-
-	utility.JSONResponse(w, http.StatusOK, "success", "user "+user.Username+" loggin successfully")
+	utility.JSONResponse(w, http.StatusOK, "success", sessionToken)
 }
 
 func (api *API) Logout(w http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie("session_token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Internal Server Error")
-			return
-		}
-
-		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Internal Server Error")
+	// Ambil token dari header Authorization
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Missing or invalid token")
 		return
 	}
-	sessionToken := c.Value
 
-	api.sessionService.DeleteSession(sessionToken)
+	token := strings.TrimPrefix(authHeader, "Bearer ")
 
-	http.SetCookie(w, &http.Cookie{
-		Name:    "session_token",
-		Value:   "",
-		Expires: time.Now(),
-	})
+	// Validasi token
+	_, err := api.sessionService.SessionAvailToken(token)
+	if err != nil {
+		utility.JSONResponse(w, http.StatusUnauthorized, "failed", "Invalid token")
+		return
+	}
+
+	err = api.sessionService.DeleteSession(token)
+	if err != nil {
+		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to logout")
+		return
+	}
 
 	utility.JSONResponse(w, http.StatusOK, "success", "logout successfully")
+}
+
+func (api *API) ValidateSession(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		http.Error(w, "Unauthorized: Missing or invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	session, err := api.sessionService.SessionAvailToken(token)
+	if err != nil || api.sessionService.TokenExpired(session) {
+		if err == nil {
+			api.sessionService.DeleteSession(token) // Hapus token expired
+			log.Print("successfully delete token")
+		}
+		http.Error(w, "Unauthorized: Invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	utility.JSONResponse(w, http.StatusOK, "success", "Token is valid")
 }
