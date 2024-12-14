@@ -66,7 +66,8 @@ func main() {
 
 	// Enable CORS
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:5173"},
+		// AllowedOrigins: []string{"http://localhost:5173"},
+		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Content-Type", "Authorization"},
 	}).Handler(router)

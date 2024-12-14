@@ -7,8 +7,9 @@ import (
 
 type ChatRepository interface {
 	AddChat(chat *model.Chat) error
-	GetChatByUserID(userID string) (*model.Chat, error)
+	GetChatUser(userID, chatID string) (*model.Chat, error)
 	UpdateChat(chat *model.Chat) error
+	ListUserChats(userID string) ([]model.Chat, error)
 }
 
 type chatRepository struct {
@@ -23,9 +24,18 @@ func (r *chatRepository) AddChat(chat *model.Chat) error {
 	return r.db.Create(chat).Error
 }
 
-func (r *chatRepository) GetChatByUserID(userID string) (*model.Chat, error) {
+func (r *chatRepository) ListUserChats(userID string) ([]model.Chat, error) {
+	var chats []model.Chat
+	err := r.db.Where("user_id = ?", userID).Find(&chats).Error
+	if err != nil {
+		return nil, err
+	}
+	return chats, nil
+}
+
+func (r *chatRepository) GetChatUser(userID, chatID string) (*model.Chat, error) {
 	var chat model.Chat
-	if err := r.db.Where("user_id = ?", userID).First(&chat).Error; err != nil {
+	if err := r.db.Where("user_id = ? AND id = ?", userID, chatID).First(&chat).Error; err != nil {
 		return nil, err
 	}
 	return &chat, nil

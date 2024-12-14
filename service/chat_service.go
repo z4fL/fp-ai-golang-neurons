@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/repository"
@@ -10,8 +11,9 @@ import (
 
 type ChatService interface {
 	CreateChat(userID string, chatHistory []map[string]any) error
-	AddMessage(userID string, newMessage []map[string]any) error
-	GetChatUser(userID string) ([]map[string]any, error)
+	AddMessage(userID, chatID string, newMessage []map[string]any) error
+	GetChatUser(userID, chatID string) ([]map[string]any, error)
+	ListUserChats(userID string) ([]map[string]any, error)
 }
 
 type chatService struct {
@@ -22,8 +24,46 @@ func NewChatService(repo repository.ChatRepository) ChatService {
 	return &chatService{repo: repo}
 }
 
-func (s *chatService) GetChatUser(userID string) ([]map[string]any, error) {
-	chat, err := s.repo.GetChatByUserID(userID)
+func (s *chatService) ListUserChats(userID string) ([]map[string]any, error) {
+	chats, err := s.repo.ListUserChats(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]any
+	for _, chat := range chats {
+		var chatHistory []model.ChatHistoryEntry
+		if err := json.Unmarshal([]byte(chat.ChatHistory), &chatHistory); err != nil {
+			return nil, err
+		}
+
+		for _, entry := range chatHistory {
+			if entry.ID == 3 {
+				if contentStr, ok := entry.Content.(string); ok {
+					words := strings.Fields(contentStr)
+					if len(words) > 4 {
+						contentStr = strings.Join(words[:4], " ") + "..."
+					}
+					contentMap := map[string]any{
+						"chatID":  chat.ID,
+						"content": contentStr,
+					}
+					result = append(result, contentMap)
+				}
+				break
+			}
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, errors.New("no content with id 3 found")
+	}
+
+	return result, nil
+}
+
+func (s *chatService) GetChatUser(userID, chatID string) ([]map[string]any, error) {
+	chat, err := s.repo.GetChatUser(userID, chatID)
 	if err != nil {
 		return nil, errors.New("chat not found")
 	}
@@ -51,9 +91,9 @@ func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) er
 	return s.repo.AddChat(chat)
 }
 
-func (s *chatService) AddMessage(userID string, newMessage []map[string]any) error {
+func (s *chatService) AddMessage(userID, chatID string, newMessage []map[string]any) error {
 	// Get existing chat
-	chat, err := s.repo.GetChatByUserID(userID)
+	chat, err := s.repo.GetChatUser(userID, chatID)
 	if err != nil {
 		return errors.New("chat not found")
 	}
