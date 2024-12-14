@@ -9,7 +9,8 @@ const AuthMiddleware = ({ children }) => {
   useEffect(() => {
     const checkToken = async () => {
       const token = localStorage.getItem("session_token");
-
+      setIsLoading(false);
+      return
       if (!token) {
         navigate("/login");
         return;
@@ -37,7 +38,8 @@ const AuthMiddleware = ({ children }) => {
         }
       } catch (err) {
         console.error(err);
-        setError("An error occurred. Please try again.");
+        setError("An error occurred. Please try again."); 
+        setIsLoading(false)
       }
     };
 

@@ -16,7 +16,7 @@ const App = () => {
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
 
   const initializeChatHistory = () => {
-    const savedChat = localStorage.getItem("chatSession");
+    const savedChat = localStorage.getItem("chat_session");
 
     const initChat = {
       id: 1,
@@ -24,9 +24,8 @@ const App = () => {
       content: "Hello, how can I help you?",
     };
 
-    setIsReload(true);
-
     if (savedChat) {
+      setIsReload(true);
       return JSON.parse(savedChat);
     } else {
       return [initChat];
@@ -35,65 +34,15 @@ const App = () => {
 
   const [chatHistory, setChatHistory] = useState(initializeChatHistory);
 
-  const resetChatSession = async () => {
-    localStorage.removeItem("chatSession");
-    localStorage.removeItem("lastAccess");
-    const res = await fetch(`${golangBaseUrl}/remove-session`, {
-      method: "POST",
-    });
-    if (!res.ok) console.log("Failed to remove session");
-    else console.log("success to remove session");
-    setChatHistory(initializeChatHistory());
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const lastAccess = localStorage.getItem("lastAccess");
-      console.log("Checking session timeout...");
-
-      if (
-        lastAccess &&
-        Date.now() - parseInt(lastAccess, 10) > 30 * 60 * 1000
-      ) {
-        console.log("Session expired. Resetting chat session.");
-        resetChatSession();
-        clearInterval(interval);
-      }
-    }, 30 * 1000);
-
-    return () => clearInterval(interval);
-  }, [resetChatSession]);
-
-  const appendChat2Session = (newChat) => {
-    localStorage.setItem("chatSession", JSON.stringify(newChat));
-    localStorage.setItem("lastAccess", Date.now());
-  };
-
   const handleResponse = async () => {
     setIsLoading(true);
-    const lastChat = chatHistory[chatHistory.length - 1];
-
     try {
-      const res =
-        lastChat.type === "text"
-          ? await handleChat()
-          : await handleUploadFile();
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error("Failed to fetch response");
-
-      const responseChat = {
-        id: chatHistory.length + 1,
-        role: "assistant",
-        content: data.answer,
-        type: "text",
-      };
+      const responseChat = await fetchChatResponse();
 
       // remove LOADING... chat and add responseChat
       setChatHistory((prevChat) => {
         const updatedChat = [...prevChat.slice(0, -1), responseChat];
-        appendChat2Session(updatedChat);
+        localStorage.setItem("chat_session", JSON.stringify(updatedChat));
         return updatedChat;
       });
 
@@ -117,22 +66,40 @@ const App = () => {
   };
 
   useEffect(() => {
-    const lastChat = chatHistory.at(-1);
-
-    if (chatHistory.length && lastChat?.role === "user") {
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        {
-          id: prevChat.length + 1,
-          role: "assistant",
-          content: "LOADING...",
-          type: "text",
-        },
-      ]);
+    const lastChat = chatHistory.at(-1); // last element
+    if (chatHistory.length && lastChat.role === "user") {
+      setChatHistory((prevChat) => {
+        return [
+          ...prevChat,
+          {
+            id: prevChat.length + 1,
+            role: "assistant",
+            content: "LOADING...",
+            type: "text",
+          },
+        ];
+      });
 
       handleResponse();
     }
   }, [chatHistory]);
+
+  const fetchChatResponse = async () => {
+    const lastChat = chatHistory[chatHistory.length - 1];
+    const res =
+      lastChat.type === "text" ? await handleChat() : await handleUploadFile();
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error("Failed to fetch response");
+
+    return {
+      id: chatHistory.length + 1,
+      role: "assistant",
+      content: data.answer,
+      type: "text",
+    };
+  };
 
   const handleChat = () => {
     const lastChat = chatHistory[chatHistory.length - 1];
@@ -144,10 +111,16 @@ const App = () => {
       ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    return fetch(`${golangBaseUrl}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    console.log("Payload for chat:", payload);
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          json: () =>
+            Promise.resolve({ answer: "Dummy fetch response for chat" }),
+          ok: true,
+        });
+      }, 5000);
     });
   };
 
@@ -155,9 +128,16 @@ const App = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetch(`${golangBaseUrl}/upload`, {
-      method: "POST",
-      body: formData,
+    console.log("FormData for file upload:", formData);
+
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          json: () =>
+            Promise.resolve({ answer: "Dummy fetch response for file upload" }),
+          ok: true,
+        });
+      }, 5000);
     });
   };
 
@@ -173,7 +153,6 @@ const App = () => {
     };
 
     if (type === "text") setQuery("");
-
     setIsLoading(true);
     setChatHistory((prevchat) => [...prevchat, newChat]);
   };

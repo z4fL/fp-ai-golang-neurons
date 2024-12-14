@@ -3,12 +3,7 @@ import { useEffect } from "react";
 import UserChat from "./Chat/UserChat";
 import AssistantChat from "./Chat/AssistantChat";
 
-const ChatList = ({
-  chatList,
-  setIsLoading,
-  reloadChat,
-  isReload,
-}) => {
+const ChatList = ({ chatList, setIsLoading, reloadChat, isReload }) => {
   const [displayResponse, setDisplayResponse] = useState("");
   const [isCompletedTyping, setIsCompletedTyping] = useState(false);
 
@@ -17,19 +12,14 @@ const ChatList = ({
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (
-      !chatList.length ||
-      chatList[chatList.length - 1].content === "LOADING..." || isReload
-    ) {
-      setDisplayResponse(chatList[chatList.length - 1].content)
-      setIsCompletedTyping(true);
-      return;
-    }
+    const lastChat = chatList[chatList.length - 1];
+
+    if (lastChat.role !== "assistant") return;
 
     setIsCompletedTyping(false);
 
     let i = 0;
-    const responseAssistant = chatList[chatList.length - 1];
+    const responseAssistant = lastChat;
     const assistantContent = responseAssistant.content;
 
     const intervalId = setInterval(() => {
