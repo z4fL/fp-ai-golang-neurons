@@ -7,7 +7,7 @@ import (
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 )
 
-func JSONResponse(w http.ResponseWriter, statusCode int, status string, answer string) {
+func JSONResponse(w http.ResponseWriter, statusCode int, status string, answer any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 

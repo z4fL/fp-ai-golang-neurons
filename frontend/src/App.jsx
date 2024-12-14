@@ -3,6 +3,8 @@ import ModalUpload from "./components/ModalUpload";
 import ChatList from "./components/ChatList";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import fetchWithToken from "./utility/fetchWithToken";
+import LoadChat from "./components/LoadChat";
 
 const App = () => {
   const [file, setFile] = useState(null);
@@ -12,104 +14,89 @@ const App = () => {
   const [isError, setIsError] = useState(false);
 
   const [isReload, setIsReload] = useState(false);
+  const [isGetChatHistory, setIsGetChatHistory] = useState(false);
 
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
 
-  const initializeChatHistory = () => {
-    const savedChat = localStorage.getItem("chatSession");
+  const token = localStorage.getItem("session_token");
 
-    const initChat = {
-      id: 1,
-      role: "assistant",
-      content: "Hello, how can I help you?",
-    };
+  const initChat = {
+    id: 1,
+    role: "assistant",
+    content: "Hello, how can I help you?",
+  };
 
-    setIsReload(true);
+  const [chatHistory, setChatHistory] = useState([initChat]);
 
-    if (savedChat) {
-      return JSON.parse(savedChat);
-    } else {
+  const initializeChatHistory = async () => {
+    setIsGetChatHistory(true);
+
+    try {
+      const res = await fetchWithToken(
+        `${golangBaseUrl}/chats`,
+        { method: "GET" },
+        token
+      );
+
+      const { answer } = await res.json();
+      if (!res.ok) throw new Error(answer);
+      const savedChat = answer;
+      console.log(savedChat);
+
+      if (savedChat && savedChat.length > 0) {
+        setIsReload(true);
+        return savedChat;
+      } else {
+        return [initChat];
+      }
+    } catch (error) {
       return [initChat];
+    } finally {
+      setIsGetChatHistory(false);
     }
   };
 
-  const [chatHistory, setChatHistory] = useState(initializeChatHistory);
-
-  const resetChatSession = async () => {
-    localStorage.removeItem("chatSession");
-    localStorage.removeItem("lastAccess");
-    const res = await fetch(`${golangBaseUrl}/remove-session`, {
-      method: "POST",
-    });
-    if (!res.ok) console.log("Failed to remove session");
-    else console.log("success to remove session");
-    setChatHistory(initializeChatHistory());
-  };
-
   useEffect(() => {
-    const interval = setInterval(() => {
-      const lastAccess = localStorage.getItem("lastAccess");
-      console.log("Checking session timeout...");
+    const fetchChatHistory = async () => {
+      const history = await initializeChatHistory();
+      setChatHistory(history);
+    };
 
-      if (
-        lastAccess &&
-        Date.now() - parseInt(lastAccess, 10) > 30 * 60 * 1000
-      ) {
-        console.log("Session expired. Resetting chat session.");
-        resetChatSession();
-        clearInterval(interval);
-      }
-    }, 30 * 1000);
-
-    return () => clearInterval(interval);
-  }, [resetChatSession]);
-
-  const appendChat2Session = (newChat) => {
-    localStorage.setItem("chatSession", JSON.stringify(newChat));
-    localStorage.setItem("lastAccess", Date.now());
-  };
+    fetchChatHistory();
+  }, []);
 
   const handleResponse = async () => {
     setIsLoading(true);
-    const lastChat = chatHistory[chatHistory.length - 1];
-
     try {
-      const res =
-        lastChat.type === "text"
-          ? await handleChat()
-          : await handleUploadFile();
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error("Failed to fetch response");
-
-      const responseChat = {
-        id: chatHistory.length + 1,
-        role: "assistant",
-        content: data.answer,
-        type: "text",
-      };
+      const responseChat = await fetchChatResponse();
 
       // remove LOADING... chat and add responseChat
-      setChatHistory((prevChat) => {
-        const updatedChat = [...prevChat.slice(0, -1), responseChat];
-        appendChat2Session(updatedChat);
-        return updatedChat;
-      });
+      setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
+
+      if (chatHistory.length <= 3) {
+        await createChatHandler(responseChat);
+      } else {
+        await addMessageHandler(responseChat);
+      }
 
       if (!file) setFile(null); // remove file
       setIsError(false);
     } catch (error) {
+      const errorChat = {
+        id: chatHistory.length + 1,
+        role: "assistant",
+        content: String(error),
+        type: "error",
+      };
+
       // remove LOADING... chat and error chat
-      setChatHistory((prevChat) => [
-        ...prevChat.slice(0, -1),
-        {
-          id: prevChat.length + 1,
-          role: "assistant",
-          content: String(error),
-          type: "error",
-        },
-      ]);
+      setChatHistory((prevChat) => [...prevChat.slice(0, -1), errorChat]);
+
+      if (chatHistory.length <= 3) {
+        await createChatHandler(errorChat);
+      } else {
+        await addMessageHandler(errorChat);
+      }
 
       setIsError(true);
       setIsLoading(false);
@@ -117,22 +104,40 @@ const App = () => {
   };
 
   useEffect(() => {
-    const lastChat = chatHistory.at(-1);
-
-    if (chatHistory.length && lastChat?.role === "user") {
-      setChatHistory((prevChat) => [
-        ...prevChat,
-        {
-          id: prevChat.length + 1,
-          role: "assistant",
-          content: "LOADING...",
-          type: "text",
-        },
-      ]);
+    const lastChat = chatHistory.at(-1); // last element
+    if (chatHistory.length && lastChat.role === "user") {
+      setChatHistory((prevChat) => {
+        return [
+          ...prevChat,
+          {
+            id: prevChat.length + 1,
+            role: "assistant",
+            content: "LOADING...",
+            type: "text",
+          },
+        ];
+      });
 
       handleResponse();
     }
   }, [chatHistory]);
+
+  const fetchChatResponse = async () => {
+    const lastChat = chatHistory[chatHistory.length - 1];
+    const res =
+      lastChat.type === "text" ? await handleChat() : await handleUploadFile();
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.answer);
+
+    return {
+      id: chatHistory.length + 1,
+      role: "assistant",
+      content: data.answer,
+      type: "text",
+    };
+  };
 
   const handleChat = () => {
     const lastChat = chatHistory[chatHistory.length - 1];
@@ -144,21 +149,41 @@ const App = () => {
       ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    return fetch(`${golangBaseUrl}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          json: () =>
+            Promise.resolve({ answer: "This is a dummy error response" }),
+          ok: false,
+        });
+      }, 1000);
     });
+
+    // return fetchWithToken(
+    //   `${golangBaseUrl}/chat-with-ai`,
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify(payload),
+    //   },
+    //   token
+    // );
   };
 
   const handleUploadFile = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetch(`${golangBaseUrl}/upload`, {
-      method: "POST",
-      body: formData,
-    });
+    return fetchWithToken(
+      `${golangBaseUrl}/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+      token
+    );
   };
 
   const getResponse = (type) => {
@@ -173,7 +198,6 @@ const App = () => {
     };
 
     if (type === "text") setQuery("");
-
     setIsLoading(true);
     setChatHistory((prevchat) => [...prevchat, newChat]);
   };
@@ -184,17 +208,72 @@ const App = () => {
     }
   };
 
+  // Fungsi untuk memanggil handler CreateChat
+  const createChatHandler = async (responseChat) => {
+    const payload = {
+      chat_history: [...chatHistory, responseChat], // Kirim chat history yang sudah ada
+    };
+
+    console.log(payload);
+
+    const res = await fetchWithToken(
+      `${golangBaseUrl}/chats`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      token
+    );
+
+    if (!res.ok) {
+      console.log("Failed to create chat");
+    } else {
+      console.log("Chat created successfully");
+    }
+  };
+
+  // Fungsi untuk memanggil handler AddMessage
+  const addMessageHandler = async (responseChat) => {
+    const lastChat = chatHistory.at(-1);
+    const payload = {
+      chat_history: [lastChat, responseChat], // Kirim chat history yang sudah ada
+    };
+    console.log(payload);
+
+    const res = await fetchWithToken(
+      `${golangBaseUrl}/chats`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      token
+    );
+
+    if (!res.ok) {
+      console.log("Failed to add message");
+    } else {
+      console.log("Message added successfully");
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col h-screen bg-slate-50 font-noto">
         <Header />
 
-        <ChatList
-          chatList={chatHistory}
-          setIsLoading={setIsLoading}
-          reloadChat={reloadChat}
-          isReload={isReload}
-        />
+        {isGetChatHistory ? (
+          <LoadChat />
+        ) : (
+          <ChatList
+            setIsError={setIsError}
+            chatList={chatHistory}
+            setIsLoading={setIsLoading}
+            reloadChat={reloadChat}
+            isReload={isReload}
+          />
+        )}
 
         {/* Input Area */}
         <Footer

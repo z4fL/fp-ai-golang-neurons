@@ -8,6 +8,7 @@ const ChatList = ({
   setIsLoading,
   reloadChat,
   isReload,
+  setIsError,
 }) => {
   const [displayResponse, setDisplayResponse] = useState("");
   const [isCompletedTyping, setIsCompletedTyping] = useState(false);
@@ -17,11 +18,11 @@ const ChatList = ({
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (
-      !chatList.length ||
-      chatList[chatList.length - 1].content === "LOADING..." || isReload
-    ) {
-      setDisplayResponse(chatList[chatList.length - 1].content)
+    const lastChat = chatList[chatList.length - 1];
+
+    if (lastChat.role !== "assistant") return;
+    if (isReload) {
+      setDisplayResponse(lastChat.content);
       setIsCompletedTyping(true);
       return;
     }
@@ -29,14 +30,13 @@ const ChatList = ({
     setIsCompletedTyping(false);
 
     let i = 0;
-    const responseAssistant = chatList[chatList.length - 1];
-    const assistantContent = responseAssistant.content;
+    const responseAssistant = lastChat.content;
 
     const intervalId = setInterval(() => {
-      setDisplayResponse(assistantContent.slice(0, i));
+      setDisplayResponse(responseAssistant.slice(0, i));
       i++;
 
-      if (i > assistantContent.length) {
+      if (i > responseAssistant.length) {
         setIsLoading(false);
 
         clearInterval(intervalId);
@@ -63,6 +63,14 @@ const ChatList = ({
 
     setIsAutoScrollEnabled(isAtBottom);
   };
+
+  useEffect(() => {
+    if (chatList.some((chat) => chat.type === "error")) {
+      setIsError(true);
+    } else {
+      setIsError(false);
+    }
+  }, [chatList]);
 
   return (
     <main

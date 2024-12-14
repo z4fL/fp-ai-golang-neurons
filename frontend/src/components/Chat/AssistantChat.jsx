@@ -33,7 +33,7 @@ const AssistantChat = ({
     return (
       <div className={`${baseClass} ${contentClass}`}>
         <div className="prose prose-base flex items-center">
-          <AnimateSpinSVG />
+          <AnimateSpinSVG className="-ml-1 mr-3 h-5 w-5 text-slate-950" />
           {chat.content}
         </div>
       </div>

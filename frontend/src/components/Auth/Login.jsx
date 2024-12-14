@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 const Login = () => {
@@ -9,6 +9,13 @@ const Login = () => {
   const navigate = useNavigate();
 
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
+
+  useEffect(() => {
+    const token = localStorage.getItem("session_token");
+    if (token) {
+      navigate("/");
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,14 +32,14 @@ const Login = () => {
         }),
       });
 
-      const res = await req.json()
+      const res = await req.json();
       if (!req.ok) throw new Error(res.answer);
-      localStorage.setItem('session_token', res.answer);
+      localStorage.setItem("session_token", res.answer);
       navigate("/");
     } catch (error) {
       setIsError(true);
-      setUsername("")
-      setPassword("")
+      setUsername("");
+      setPassword("");
       console.log(error);
     }
   };
@@ -95,7 +102,7 @@ const Login = () => {
               <span>Not have an account? </span>
               <button
                 className="text-lime-800 hover:underline"
-                onClick={() => navigate('/register')}
+                onClick={() => navigate("/register")}
               >
                 Register
               </button>

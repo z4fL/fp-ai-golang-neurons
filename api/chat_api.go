@@ -113,18 +113,34 @@ func (h *API) AddMessage(w http.ResponseWriter, r *http.Request) {
 	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
 	userID := strconv.FormatUint(uint64(userIDUint), 10)
 
-	var req map[string]any
+	var req struct {
+		ChatHistory []map[string]any `json:"chat_history"`
+	}
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utility.JSONResponse(w, http.StatusBadRequest, "failed", "Invalid input")
 		return
 	}
 
-	if err := h.chatService.AddMessage(userID, req); err != nil {
+	if err := h.chatService.AddMessage(userID, req.ChatHistory); err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to add chat")
 		return
 	}
 
 	utility.JSONResponse(w, http.StatusOK, "success", "Chat  successfully")
+}
+func (h *API) GetChat(w http.ResponseWriter, r *http.Request) {
+	// Ambil userID dari context
+	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
+	userID := strconv.FormatUint(uint64(userIDUint), 10)
+
+	chatHistory, err := h.chatService.GetChatUser(userID)
+	if err != nil {
+		utility.JSONResponse(w, http.StatusNotFound, "failed", "Chat history not found")
+		return
+	}
+
+	utility.JSONResponse(w, http.StatusOK, "success", chatHistory)
 }
 
 func (h *API) RemoveSession(w http.ResponseWriter, r *http.Request) {

@@ -39,7 +39,7 @@ type DBCredential struct {
 
 type Response struct {
 	Status string `json:"status"`
-	Answer string `json:"answer"`
+	Answer any    `json:"answer"`
 }
 
 type ChatRequest struct {
