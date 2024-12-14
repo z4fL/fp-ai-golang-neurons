@@ -10,7 +10,8 @@ import (
 
 type ChatService interface {
 	CreateChat(userID string, chatHistory []map[string]any) error
-	AddMessage(userID string, newMessage map[string]any) error
+	AddMessage(userID string, newMessage []map[string]any) error
+	GetChatUser(userID string) ([]map[string]any, error)
 }
 
 type chatService struct {
@@ -19,6 +20,20 @@ type chatService struct {
 
 func NewChatService(repo repository.ChatRepository) ChatService {
 	return &chatService{repo: repo}
+}
+
+func (s *chatService) GetChatUser(userID string) ([]map[string]any, error) {
+	chat, err := s.repo.GetChatByUserID(userID)
+	if err != nil {
+		return nil, errors.New("chat not found")
+	}
+
+	var chatHistory []map[string]any
+	if err := json.Unmarshal(chat.ChatHistory, &chatHistory); err != nil {
+		return nil, err
+	}
+
+	return chatHistory, nil
 }
 
 func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) error {
@@ -36,7 +51,7 @@ func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) er
 	return s.repo.AddChat(chat)
 }
 
-func (s *chatService) AddMessage(userID string, newMessage map[string]any) error {
+func (s *chatService) AddMessage(userID string, newMessage []map[string]any) error {
 	// Get existing chat
 	chat, err := s.repo.GetChatByUserID(userID)
 	if err != nil {
@@ -50,7 +65,7 @@ func (s *chatService) AddMessage(userID string, newMessage map[string]any) error
 	}
 
 	// Append new message
-	chatHistory = append(chatHistory, newMessage)
+	chatHistory = append(chatHistory, newMessage...)
 
 	// Serialize updated chat history
 	updatedChatHistory, err := json.Marshal(chatHistory)

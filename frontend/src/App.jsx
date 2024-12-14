@@ -3,6 +3,8 @@ import ModalUpload from "./components/ModalUpload";
 import ChatList from "./components/ChatList";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import fetchWithToken from "./utility/fetchWithToken";
+import LoadChat from "./components/LoadChat";
 
 const App = () => {
   const [file, setFile] = useState(null);
@@ -12,27 +14,56 @@ const App = () => {
   const [isError, setIsError] = useState(false);
 
   const [isReload, setIsReload] = useState(false);
+  const [isGetChatHistory, setIsGetChatHistory] = useState(false);
 
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
 
-  const initializeChatHistory = () => {
-    const savedChat = localStorage.getItem("chat_session");
+  const token = localStorage.getItem("session_token");
 
-    const initChat = {
-      id: 1,
-      role: "assistant",
-      content: "Hello, how can I help you?",
-    };
+  const initChat = {
+    id: 1,
+    role: "assistant",
+    content: "Hello, how can I help you?",
+  };
 
-    if (savedChat) {
-      setIsReload(true);
-      return JSON.parse(savedChat);
-    } else {
+  const [chatHistory, setChatHistory] = useState([initChat]);
+
+  const initializeChatHistory = async () => {
+    setIsGetChatHistory(true);
+
+    try {
+      const res = await fetchWithToken(
+        `${golangBaseUrl}/chats`,
+        { method: "GET" },
+        token
+      );
+
+      const { answer } = await res.json();
+      if (!res.ok) throw new Error(answer);
+      const savedChat = answer;
+      console.log(savedChat);
+
+      if (savedChat && savedChat.length > 0) {
+        setIsReload(true);
+        return savedChat;
+      } else {
+        return [initChat];
+      }
+    } catch (error) {
       return [initChat];
+    } finally {
+      setIsGetChatHistory(false);
     }
   };
 
-  const [chatHistory, setChatHistory] = useState(initializeChatHistory);
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      const history = await initializeChatHistory();
+      setChatHistory(history);
+    };
+
+    fetchChatHistory();
+  }, []);
 
   const handleResponse = async () => {
     setIsLoading(true);
@@ -42,9 +73,14 @@ const App = () => {
       // remove LOADING... chat and add responseChat
       setChatHistory((prevChat) => {
         const updatedChat = [...prevChat.slice(0, -1), responseChat];
-        localStorage.setItem("chat_session", JSON.stringify(updatedChat));
         return updatedChat;
       });
+
+      if (chatHistory.length <= 3) {
+        await createChatHandler(responseChat);
+      } else {
+        await addMessageHandler(responseChat);
+      }
 
       if (!file) setFile(null); // remove file
       setIsError(false);
@@ -111,34 +147,31 @@ const App = () => {
       ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    console.log("Payload for chat:", payload);
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          json: () =>
-            Promise.resolve({ answer: "Dummy fetch response for chat" }),
-          ok: true,
-        });
-      }, 5000);
-    });
+    return fetchWithToken(
+      `${golangBaseUrl}/chat-with-ai`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      token
+    );
   };
 
   const handleUploadFile = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    console.log("FormData for file upload:", formData);
-
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          json: () =>
-            Promise.resolve({ answer: "Dummy fetch response for file upload" }),
-          ok: true,
-        });
-      }, 5000);
-    });
+    return fetchWithToken(
+      `${golangBaseUrl}/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+      token
+    );
   };
 
   const getResponse = (type) => {
@@ -163,17 +196,71 @@ const App = () => {
     }
   };
 
+  // Fungsi untuk memanggil handler CreateChat
+  const createChatHandler = async (responseChat) => {
+    const payload = {
+      chat_history: [...chatHistory, responseChat], // Kirim chat history yang sudah ada
+    };
+
+    console.log(payload);
+
+    const res = await fetchWithToken(
+      `${golangBaseUrl}/chats`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      token
+    );
+
+    if (!res.ok) {
+      console.log("Failed to create chat");
+    } else {
+      console.log("Chat created successfully");
+    }
+  };
+
+  // Fungsi untuk memanggil handler AddMessage
+  const addMessageHandler = async (responseChat) => {
+    const lastChat = chatHistory.at(-1);
+    const payload = {
+      chat_history: [lastChat, responseChat], // Kirim chat history yang sudah ada
+    };
+    console.log(payload);
+
+    const res = await fetchWithToken(
+      `${golangBaseUrl}/chats`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+      token
+    );
+
+    if (!res.ok) {
+      console.log("Failed to add message");
+    } else {
+      console.log("Message added successfully");
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col h-screen bg-slate-50 font-noto">
         <Header />
 
-        <ChatList
-          chatList={chatHistory}
-          setIsLoading={setIsLoading}
-          reloadChat={reloadChat}
-          isReload={isReload}
-        />
+        {isGetChatHistory ? (
+          <LoadChat />
+        ) : (
+          <ChatList
+            chatList={chatHistory}
+            setIsLoading={setIsLoading}
+            reloadChat={reloadChat}
+            isReload={isReload}
+          />
+        )}
 
         {/* Input Area */}
         <Footer

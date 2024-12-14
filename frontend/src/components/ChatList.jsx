@@ -15,18 +15,22 @@ const ChatList = ({ chatList, setIsLoading, reloadChat, isReload }) => {
     const lastChat = chatList[chatList.length - 1];
 
     if (lastChat.role !== "assistant") return;
+    if (isReload) {
+      setDisplayResponse(lastChat.content);
+      setIsCompletedTyping(true);
+      return
+    }
 
     setIsCompletedTyping(false);
 
     let i = 0;
-    const responseAssistant = lastChat;
-    const assistantContent = responseAssistant.content;
+    const responseAssistant = lastChat.content;
 
     const intervalId = setInterval(() => {
-      setDisplayResponse(assistantContent.slice(0, i));
+      setDisplayResponse(responseAssistant.slice(0, i));
       i++;
 
-      if (i > assistantContent.length) {
+      if (i > responseAssistant.length) {
         setIsLoading(false);
 
         clearInterval(intervalId);
