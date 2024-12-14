@@ -44,7 +44,7 @@ var _ = ginkgo.Describe("ChatService", func() {
 		chatService ChatService
 		userID      string
 		chatHistory []map[string]any
-		newMessage  map[string]any
+		newMessage  []map[string]any
 	)
 
 	ginkgo.BeforeEach(func() {
@@ -54,7 +54,7 @@ var _ = ginkgo.Describe("ChatService", func() {
 		chatHistory = []map[string]any{
 			{"message": "Hello"},
 		}
-		newMessage = map[string]any{"message": "Hi"}
+		newMessage = []map[string]any{{"message": "Hi"}, {"message": "Hi"}}
 	})
 
 	ginkgo.Describe("CreateChat", func() {
@@ -98,7 +98,7 @@ var _ = ginkgo.Describe("ChatService", func() {
 			var storedChatHistory []map[string]any
 			err = json.Unmarshal(chat.ChatHistory, &storedChatHistory)
 			gomega.Expect(err).To(gomega.BeNil())
-			gomega.Expect(storedChatHistory).To(gomega.Equal(append(chatHistory, newMessage)))
+			gomega.Expect(storedChatHistory).To(gomega.Equal(append(chatHistory, newMessage...)))
 		})
 
 		ginkgo.It("should return an error if chat is not found", func() {
@@ -120,8 +120,7 @@ var _ = ginkgo.Describe("ChatService", func() {
 		ginkgo.It("should return an error if chat history serialization fails", func() {
 			err := chatService.CreateChat(userID, chatHistory)
 			gomega.Expect(err).To(gomega.BeNil())
-
-			invalidMessage := map[string]any{"message": make(chan int)}
+			invalidMessage := []map[string]any{{"message": make(chan int)}, {"message": make(chan string)}}
 			err = chatService.AddMessage(userID, invalidMessage)
 			gomega.Expect(err).ToNot(gomega.BeNil())
 		})
