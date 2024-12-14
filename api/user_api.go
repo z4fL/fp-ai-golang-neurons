@@ -45,7 +45,7 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 	expiresAt := time.Now().Add(5 * time.Hour)
 	session := model.Session{Token: sessionToken, UserID: user.ID, Expiry: expiresAt}
 
-	err = api.sessionService.SessionAvailID(session.UserID)
+	err = api.sessionService.SessionAvailID(user.ID)
 	if err != nil {
 		log.Print("Add session")
 		err = api.sessionService.AddSession(session)
