@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useOutletContext } from "react-router";
+import { useLocation, useOutletContext } from "react-router";
 import UserChat from "./chat/UserChat";
 import AssistantChat from "./chat/AssistantChat";
 
@@ -7,14 +7,18 @@ const ChatArea = () => {
   const { chatHistory, setIsLoading, setIsError, reloadChat } =
     useOutletContext();
 
+  const location = useLocation();
+
   const [displayResponse, setDisplayResponse] = useState("");
   const [isCompletedTyping, setIsCompletedTyping] = useState(false);
-
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+
   const bottomRef = useRef(null);
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
+    const fromNavigate = location.state?.fromNavigate;
+    window.history.replaceState({}, "");
     if (chatHistory.some((chat) => chat.type === "error")) {
       setIsError(true);
     } else {
@@ -24,11 +28,13 @@ const ChatArea = () => {
     const lastChat = chatHistory[chatHistory.length - 1];
 
     if (lastChat.role !== "assistant") return;
-    // if (isReload) {
-    //   setDisplayResponse(lastChat.content);
-    //   setIsCompletedTyping(true);
-    //   return;
-    // }
+    if (!fromNavigate) {
+      setDisplayResponse(lastChat.content);
+      setIsCompletedTyping(true);
+      return;
+    }
+
+    console.log(fromNavigate);
 
     setIsCompletedTyping(false);
 
@@ -48,7 +54,7 @@ const ChatArea = () => {
     }, 5);
 
     return () => clearInterval(intervalId);
-  }, [chatHistory]);
+  }, [chatHistory, location]);
 
   useEffect(() => {
     if (isAutoScrollEnabled) {

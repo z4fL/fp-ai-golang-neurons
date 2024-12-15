@@ -14,10 +14,10 @@ const Navbar = () => {
   const location = useLocation();
 
   useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location]);
+    if (isSidebarOpen) {
+      setIsSidebarOpen(false);
+    }
 
-  useEffect(() => {
     const fetchListChats = async () => {
       try {
         const response = await fetchWithToken(
@@ -31,12 +31,12 @@ const Navbar = () => {
         const data = await response.json();
         setListChats(data.answer);
       } catch (error) {
-        console.error(error);
+        setListChats([]);
       }
     };
 
     fetchListChats();
-  }, []);
+  }, [location]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -69,13 +69,19 @@ const Navbar = () => {
           </div>
           <div className="">
             <ul className="flex flex-col divide-y">
-              {listChats.map((chat) => (
-                <Link key={chat.chatID} to={`/chats/${chat.chatID}`}>
-                  <li className="px-4 py-2 hover:bg-lime-200">
-                    <div className="cursor-pointer">{chat.content}</div>
-                  </li>
-                </Link>
-              ))}
+              {listChats.length ? (
+                listChats.map((chat) => (
+                  <Link key={chat.chatID} to={`/chats/${chat.chatID}`}>
+                    <li className="px-4 py-2 hover:bg-lime-200">
+                      <p className="cursor-pointer truncate">{chat.content}</p>
+                    </li>
+                  </Link>
+                ))
+              ) : (
+                <li className="px-4 py-2 hover:bg-lime-200">
+                  <p className="cursor-pointer truncate">No Chat</p>
+                </li>
+              )}
             </ul>
           </div>
         </div>

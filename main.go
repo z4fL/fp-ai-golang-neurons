@@ -36,6 +36,7 @@ func main() {
 	}
 
 	conn.AutoMigrate(&model.User{}, &model.Session{}, &model.Chat{})
+	db.Reset(conn,"chats")
 
 	// Retrieve the Hugging Face token from the environment variables
 	token := os.Getenv("HUGGINGFACE_TOKEN")

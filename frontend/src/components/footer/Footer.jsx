@@ -17,7 +17,7 @@ const Footer = ({
           className="p-2 bg-lime-200 rounded-md hover:bg-lime-300"
           title="Upload File"
           onClick={() => setIsModalOpen(true)}
-          disabled={isLoading}
+          disabled={isLoading || isError}
         >
           <UploadSVG />
         </button>
@@ -27,7 +27,7 @@ const Footer = ({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ketik pesan..."
+          placeholder="Type here..."
           className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 placeholder:text-slate-500"
           onKeyDown={(e) => {
             if (e.key === "Enter" && query.trim() && !isLoading && !isError) {

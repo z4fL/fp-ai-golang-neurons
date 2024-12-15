@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
@@ -41,8 +42,8 @@ func (s *chatService) ListUserChats(userID string) ([]map[string]any, error) {
 			if entry.ID == 3 {
 				if contentStr, ok := entry.Content.(string); ok {
 					words := strings.Fields(contentStr)
-					if len(words) > 4 {
-						contentStr = strings.Join(words[:4], " ") + "..."
+					if len(words) > 6 {
+						contentStr = strings.Join(words[:6], " ")
 					}
 					contentMap := map[string]any{
 						"chatID":  chat.ID,
@@ -58,6 +59,11 @@ func (s *chatService) ListUserChats(userID string) ([]map[string]any, error) {
 	if len(result) == 0 {
 		return nil, errors.New("no content with id 3 found")
 	}
+
+	// Sort the result by chatID
+	sort.Slice(result, func(i, j int) bool {
+		return result[i]["chatID"].(uint) > result[j]["chatID"].(uint)
+	})
 
 	return result, nil
 }
@@ -109,8 +115,14 @@ func (s *chatService) AddMessage(userID, chatID string, newMessage []map[string]
 		return err
 	}
 
-	// Append new message
-	chatHistory = append(chatHistory, newMessage...)
+	// Check if the last item in chatHistory is of type "error"
+	if len(chatHistory) > 0 && chatHistory[len(chatHistory)-1]["type"] == "error" {
+		// Replace the last item with the last item from newMessage
+		chatHistory[len(chatHistory)-1] = newMessage[len(newMessage)-1]
+	} else {
+		// Append new message
+		chatHistory = append(chatHistory, newMessage...)
+	}
 
 	// Serialize updated chat history
 	updatedChatHistory, err := json.Marshal(chatHistory)

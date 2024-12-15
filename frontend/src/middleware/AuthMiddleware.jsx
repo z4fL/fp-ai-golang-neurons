@@ -9,7 +9,7 @@ const AuthMiddleware = ({ children }) => {
   useEffect(() => {
     const checkToken = async () => {
       const token = localStorage.getItem("session_token");
-      setIsLoading(false);
+      setIsLoading(true);
       if (!token) {
         navigate("/login");
         return;

@@ -4,6 +4,7 @@ import Header from "../components/header/Header";
 import Footer from "../components/footer/Footer";
 import ModalUpload from "../components/ModalUpload";
 import fetchWithToken from "../utility/fetchWithToken";
+import NewChat from "../components/NewChat";
 
 const ChatLayout = () => {
   const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
@@ -43,6 +44,7 @@ const ChatLayout = () => {
     id: 1,
     role: "assistant",
     content: "Hello, how can I help you?",
+    type: "text",
   };
   const [chatHistory, setChatHistory] = useState([initChat]);
 
@@ -65,30 +67,10 @@ const ChatLayout = () => {
     };
 
     if (type === "text") setQuery("");
-    setIsLoading(true);
     setChatHistory((prevchat) => [...prevchat, newChat]);
   };
 
-  useEffect(() => {
-    const lastChat = chatHistory.at(-1); // last element
-    if (chatHistory.length && lastChat.role === "user") {
-      setChatHistory((prevChat) => {
-        return [
-          ...prevChat,
-          {
-            id: prevChat.length + 1,
-            role: "assistant",
-            content: "LOADING...",
-            type: "text",
-          },
-        ];
-      });
-
-      handleResponse();
-    }
-  }, [chatHistory]);
-
-  async function handleResponse() {
+  const handleResponse = async () => {
     setIsLoading(true);
     try {
       const responseChat = await fetchChatResponse();
@@ -97,12 +79,11 @@ const ChatLayout = () => {
       setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
 
       if (chatHistory.length <= 3) {
-        await createChatHandler(responseChat);
+        await createNewChat(responseChat);
       } else {
-        await addMessageHandler(responseChat);
+        await updateChat(responseChat);
       }
 
-      if (!file) setFile(null); // remove file
       setIsError(false);
     } catch (error) {
       const errorChat = {
@@ -124,7 +105,24 @@ const ChatLayout = () => {
       setIsError(true);
       setIsLoading(false);
     }
-  }
+  };
+
+  useEffect(() => {
+    const lastChat = chatHistory.at(-1); // last element
+    if (chatHistory.length && lastChat.role === "user") {
+      setChatHistory((prevChat) => [
+        ...prevChat,
+        {
+          id: prevChat.length + 1,
+          role: "assistant",
+          content: "LOADING...",
+          type: "loading",
+        },
+      ]);
+
+      handleResponse();
+    }
+  }, [chatHistory]);
 
   async function fetchChatResponse() {
     const lastChat = chatHistory[chatHistory.length - 1];
@@ -134,6 +132,7 @@ const ChatLayout = () => {
     const data = await res.json();
 
     if (!res.ok) throw new Error(data.answer);
+    if (file) setFile(null); // remove file
 
     return {
       id: chatHistory.length + 1,
@@ -185,8 +184,6 @@ const ChatLayout = () => {
       chat_history: [...chatHistory, responseChat], // Kirim chat history yang sudah ada
     };
 
-    console.log(payload);
-
     const res = await fetchWithToken(
       `${golangBaseUrl}/chats`,
       {
@@ -204,7 +201,7 @@ const ChatLayout = () => {
       if (!file) setFile(null); // remove file
       setIsError(false);
 
-      navigate(`/chats/${data.answer}`);
+      navigate(`/chats/${data.answer}`, { state: { fromNavigate: true } });
     }
   }
 
@@ -213,10 +210,9 @@ const ChatLayout = () => {
     const payload = {
       chat_history: [lastChat, responseChat], // Kirim chat history yang sudah ada
     };
-    console.log(payload);
 
     const res = await fetchWithToken(
-      `${golangBaseUrl}/chats`,
+      `${golangBaseUrl}/chats/${chatId}`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -233,6 +229,7 @@ const ChatLayout = () => {
   }
 
   const reloadChat = () => {
+    console.log("Reloading chat");
     if (chatHistory[chatHistory.length - 1].type === "error") {
       setChatHistory((prevChat) => prevChat.slice(0, -1));
     }
@@ -241,7 +238,19 @@ const ChatLayout = () => {
   return (
     <div className="relative flex flex-col h-screen bg-gray-50 font-noto">
       <Header />
-      <Outlet context={{ chatHistory, setIsLoading, setIsError, reloadChat }} />
+      {chatId ? (
+        <Outlet
+          context={{ chatHistory, setIsLoading, setIsError, reloadChat }}
+        />
+      ) : (
+        <NewChat
+          chatList={chatHistory}
+          reloadChat={reloadChat}
+          setIsError={setIsError}
+          setIsLoading={setIsLoading}
+        />
+      )}
+
       <Footer
         setIsModalOpen={setIsModalOpen}
         query={query}
