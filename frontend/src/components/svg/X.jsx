@@ -1,7 +1,7 @@
 const X = () => {
   return (
     <svg
-      className="text-gray-600 w-6 h-6 hover:text-gray-900"
+      className="text-gray-600 dark:text-gray-300 w-6 h-6 hover:text-gray-900 dark:hover:text-gray-200"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 384 512"
     >

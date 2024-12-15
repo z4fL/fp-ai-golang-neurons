@@ -29,7 +29,7 @@ const Logout = () => {
   return (
     <button
       onClick={() => handleLogout()}
-      className="text-gray-800 hover:text-gray-600 active:text-gray-500"
+      className="text-gray-800 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-400 dark:active:text-gray-300"
     >
       <svg
         className="w-5 h-5"
