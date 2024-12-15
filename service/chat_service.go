@@ -10,7 +10,7 @@ import (
 )
 
 type ChatService interface {
-	CreateChat(userID string, chatHistory []map[string]any) error
+	CreateChat(userID string, chatHistory []map[string]any) (*model.Chat, error)
 	AddMessage(userID, chatID string, newMessage []map[string]any) error
 	GetChatUser(userID, chatID string) ([]map[string]any, error)
 	ListUserChats(userID string) ([]map[string]any, error)
@@ -76,11 +76,11 @@ func (s *chatService) GetChatUser(userID, chatID string) ([]map[string]any, erro
 	return chatHistory, nil
 }
 
-func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) error {
+func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) (*model.Chat, error) {
 	// Serialize chatHistory to JSON
 	chatHistoryJSON, err := json.Marshal(chatHistory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	chat := &model.Chat{
@@ -88,7 +88,12 @@ func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) er
 		ChatHistory: chatHistoryJSON,
 	}
 
-	return s.repo.AddChat(chat)
+	createdChat, err := s.repo.AddChat(chat)
+	if err != nil {
+		return nil, err
+	}
+
+	return createdChat, nil
 }
 
 func (s *chatService) AddMessage(userID, chatID string, newMessage []map[string]any) error {

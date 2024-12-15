@@ -1,15 +1,12 @@
-import React, { useState, useRef } from "react";
-import { useEffect } from "react";
-import UserChat from "./Chat/UserChat";
-import AssistantChat from "./Chat/AssistantChat";
+import { useEffect, useRef, useState } from "react";
+import { useOutletContext } from "react-router";
+import UserChat from "./chat/UserChat";
+import AssistantChat from "./chat/AssistantChat";
 
-const ChatList = ({
-  chatList,
-  setIsLoading,
-  reloadChat,
-  isReload,
-  setIsError,
-}) => {
+const ChatArea = () => {
+  const { chatHistory, setIsLoading, setIsError, reloadChat } =
+    useOutletContext();
+
   const [displayResponse, setDisplayResponse] = useState("");
   const [isCompletedTyping, setIsCompletedTyping] = useState(false);
 
@@ -18,14 +15,20 @@ const ChatList = ({
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    const lastChat = chatList[chatList.length - 1];
+    if (chatHistory.some((chat) => chat.type === "error")) {
+      setIsError(true);
+    } else {
+      setIsError(false);
+    }
+
+    const lastChat = chatHistory[chatHistory.length - 1];
 
     if (lastChat.role !== "assistant") return;
-    if (isReload) {
-      setDisplayResponse(lastChat.content);
-      setIsCompletedTyping(true);
-      return;
-    }
+    // if (isReload) {
+    //   setDisplayResponse(lastChat.content);
+    //   setIsCompletedTyping(true);
+    //   return;
+    // }
 
     setIsCompletedTyping(false);
 
@@ -45,14 +48,14 @@ const ChatList = ({
     }, 5);
 
     return () => clearInterval(intervalId);
-  }, [chatList]);
+  }, [chatHistory]);
 
   useEffect(() => {
     if (isAutoScrollEnabled) {
-      // Auto-scroll tiap kali ada perubahan pada chatList
+      // Auto-scroll tiap kali ada perubahan pada chatHistory
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [displayResponse, chatList, isAutoScrollEnabled]);
+  }, [displayResponse, chatHistory, isAutoScrollEnabled]);
 
   const handleScroll = () => {
     const container = chatContainerRef.current;
@@ -63,14 +66,6 @@ const ChatList = ({
 
     setIsAutoScrollEnabled(isAtBottom);
   };
-
-  useEffect(() => {
-    if (chatList.some((chat) => chat.type === "error")) {
-      setIsError(true);
-    } else {
-      setIsError(false);
-    }
-  }, [chatList]);
 
   return (
     <main
@@ -85,18 +80,17 @@ const ChatList = ({
             id="chat-list"
             className="chat w-full max-w-screen-md flex flex-col space-y-4"
           >
-            {chatList.map((chat, chatId) =>
+            {chatHistory.map((chat) =>
               chat.role === "user" ? (
-                <UserChat key={chatId} chat={chat} />
+                <UserChat key={chat.id} chat={chat} />
               ) : (
                 <AssistantChat
-                  key={chatId}
+                  key={chat.id}
                   chat={chat}
-                  chatId={chatId}
-                  chatListLength={chatList.length}
+                  chatListLength={chatHistory.length}
                   isCompletedTyping={isCompletedTyping}
                   displayResponse={displayResponse}
-                  reloadChat={() => reloadChat()}
+                  reloadChat={reloadChat}
                 />
               )
             )}
@@ -108,4 +102,4 @@ const ChatList = ({
   );
 };
 
-export default ChatList;
+export default ChatArea;

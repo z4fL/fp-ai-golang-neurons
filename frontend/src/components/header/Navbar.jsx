@@ -1,0 +1,87 @@
+import { useEffect, useState } from "react";
+import fetchWithToken from "../../utility/fetchWithToken";
+import { Link, useLocation } from "react-router";
+import Bars from "../svg/Bars";
+import SquarePlus from "../svg/SquarePlus";
+import X from "../svg/X";
+
+const Navbar = () => {
+  const golangBaseUrl = import.meta.env.VITE_GOLANG_URL;
+  const token = localStorage.getItem("session_token");
+  const [listChats, setListChats] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location]);
+
+  useEffect(() => {
+    const fetchListChats = async () => {
+      try {
+        const response = await fetchWithToken(
+          `${golangBaseUrl}/chats`,
+          undefined,
+          token
+        );
+
+        if (!response.ok) throw new Error("failed to fetch list chat of user");
+
+        const data = await response.json();
+        setListChats(data.answer);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchListChats();
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  return (
+    <>
+      <button className="py-2" onClick={toggleSidebar}>
+        <Bars />
+      </button>
+
+      <button className="py-2 pl-6">
+        <Link to="/">
+          <SquarePlus />
+        </Link>
+      </button>
+
+      {/* Sidebar */}
+      <div
+        className={`fixed top-0 left-0 z-10 h-full w-64 bg-gray-300 text-gray-800 transform ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } transition-transform duration-300`}
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex items-center space-x-4 p-2">
+            <button className="p-2 rounded" onClick={toggleSidebar}>
+              <X />
+            </button>
+            <h2 className="font-bold text-lg">List Chats</h2>
+          </div>
+          <div className="">
+            <ul className="flex flex-col divide-y">
+              {listChats.map((chat) => (
+                <Link key={chat.chatID} to={`/chats/${chat.chatID}`}>
+                  <li className="px-4 py-2 hover:bg-lime-200">
+                    <div className="cursor-pointer">{chat.content}</div>
+                  </li>
+                </Link>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default Navbar;

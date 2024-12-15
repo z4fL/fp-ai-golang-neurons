@@ -7,7 +7,6 @@ import ReloadSVG from "../svg/ReloadSVG";
 
 const AssistantChat = ({
   chat,
-  chatId,
   chatListLength,
   isCompletedTyping,
   displayResponse,
@@ -19,7 +18,7 @@ const AssistantChat = ({
       ? "bg-red-200 border-2 border-red-400 text-slate-900"
       : "bg-slate-100 text-slate-900";
 
-  if (chatId !== chatListLength - 1) {
+  if (chat.id !== chatListLength - 1) {
     return (
       <div className={`${baseClass} ${contentClass}`}>
         <div className="prose prose-base">

@@ -6,7 +6,7 @@ import (
 )
 
 type ChatRepository interface {
-	AddChat(chat *model.Chat) error
+	AddChat(chat *model.Chat) (*model.Chat, error)
 	GetChatUser(userID, chatID string) (*model.Chat, error)
 	UpdateChat(chat *model.Chat) error
 	ListUserChats(userID string) ([]model.Chat, error)
@@ -20,8 +20,11 @@ func NewChatRepository(db *gorm.DB) ChatRepository {
 	return &chatRepository{db: db}
 }
 
-func (r *chatRepository) AddChat(chat *model.Chat) error {
-	return r.db.Create(chat).Error
+func (r *chatRepository) AddChat(chat *model.Chat) (*model.Chat, error) {
+	if err := r.db.Create(chat).Error; err != nil {
+		return nil, err
+	}
+	return chat, nil
 }
 
 func (r *chatRepository) ListUserChats(userID string) ([]model.Chat, error) {

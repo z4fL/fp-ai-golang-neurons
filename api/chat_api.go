@@ -101,12 +101,13 @@ func (h *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.chatService.CreateChat(userID, req.ChatHistory); err != nil {
+	chat, err := h.chatService.CreateChat(userID, req.ChatHistory)
+	if err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to create chat")
 		return
 	}
 
-	utility.JSONResponse(w, http.StatusCreated, "success", "Chat created successfully")
+	utility.JSONResponse(w, http.StatusCreated, "success", chat.ID)
 }
 
 func (h *API) AddMessage(w http.ResponseWriter, r *http.Request) {
