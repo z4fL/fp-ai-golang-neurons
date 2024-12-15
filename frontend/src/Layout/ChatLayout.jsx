@@ -169,14 +169,12 @@ const ChatLayout = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetchWithToken(
-      `${golangBaseUrl}/upload`,
-      {
-        method: "POST",
-        body: formData,
-      },
-      token
-    );
+    return new Promise((resolve) => {
+      resolve({
+      ok: false,
+      json: async () => ({ answer: "File upload failed" }),
+      });
+    });
   }
 
   async function createNewChat(responseChat) {

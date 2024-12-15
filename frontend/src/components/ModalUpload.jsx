@@ -94,7 +94,7 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
               />
               <label
                 htmlFor="file-input"
-                className="px-4 py-2 bg-lime-600 text-white rounded-md cursor-pointer hover:bg-lime-500"
+                className="px-4 py-2 bg-lime-600 dark:bg-lime-500 text-white dark:text-gray-900 rounded-md cursor-pointer hover:bg-lime-500 dark:hover:bg-lime-600"
               >
                 Upload File
               </label>
@@ -104,7 +104,7 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
           {/* Display selected file */}
           {file && (
             <div className="mt-4 bg-gray-100 dark:bg-gray-800 p-3 rounded-md flex justify-between items-center">
-              <div className="flex flex-col dark:text-gray-300">
+              <div className="flex flex-col dark:text-gray-100">
                 <span className="text-ellipsis overflow-hidden">
                   {file.name}
                 </span>
@@ -123,8 +123,8 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
           <div className="mt-6 flex justify-end space-x-4">
             <button
               onClick={handleUploadFile}
-              className={`px-4 py-2 bg-lime-600 dark:hover:bg-lime-700 text-white rounded-md hover:bg-lime-500 ${
-                !file && "disabled:bg-lime-700"
+              className={`px-4 py-2 bg-lime-600 dark:bg-lime-400 dark:hover:bg-lime-500 text-white dark:text-gray-900 rounded-md hover:bg-lime-500 ${
+                !file && "disabled:bg-lime-700 dark:disabled:bg-lime-600"
               }`}
               disabled={file ? false : true}
             >
