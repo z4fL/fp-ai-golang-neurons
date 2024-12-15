@@ -78,7 +78,7 @@ const ChatLayout = () => {
       // remove LOADING... chat and add responseChat
       setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
 
-      if (chatHistory.length <= 3) {
+      if (chatHistory.length <= 3 && !isError) {
         await createNewChat(responseChat);
       } else {
         await updateChat(responseChat);

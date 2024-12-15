@@ -28,7 +28,7 @@ const Footer = ({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Type here..."
-          className="flex-1 p-2 dark:caret-white dark:bg-slate-600 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-600 placeholder:text-slate-900 dark:placeholder:text-slate-300"
+          className="flex-1 p-2 dark:text-white dark:caret-white dark:bg-slate-600 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-600 placeholder:text-slate-900 dark:placeholder:text-slate-300"
           onKeyDown={(e) => {
             if (e.key === "Enter" && query.trim() && !isLoading && !isError) {
               getResponse();

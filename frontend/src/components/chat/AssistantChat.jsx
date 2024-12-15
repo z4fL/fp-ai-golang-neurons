@@ -20,7 +20,7 @@ const AssistantChat = ({
   if (chat.id !== chatListLength) {
     return (
       <div className={`${baseClass} ${contentClass}`}>
-        <div className="prose prose-base text-slate-900 dark:text-slate-200">
+        <div className="prose dark:prose-invert prose-base text-slate-900 dark:text-slate-200">
           <Markdown>{chat.content}</Markdown>
         </div>
       </div>
@@ -30,7 +30,7 @@ const AssistantChat = ({
   if (chat.type === "loading") {
     return (
       <div className={`${baseClass} ${contentClass}`}>
-        <div className="prose prose-base flex items-center text-slate-900 dark:text-slate-200">
+        <div className="prose dark:prose-invert prose-base flex items-center text-slate-900 dark:text-slate-200">
           <AnimateSpinSVG className="-ml-1 mr-3 h-5 w-5 text-slate-950 dark:text-slate-300" />
           {chat.content}
         </div>
@@ -57,7 +57,7 @@ const AssistantChat = ({
 
   return (
     <div className={`${baseClass} ${contentClass}`}>
-      <div className="prose prose-base text-slate-900 dark:text-slate-200">
+      <div className="prose dark:prose-invert prose-base text-slate-900 dark:text-slate-200">
         {!isCompletedTyping ? (
           <>
             {displayResponse}
