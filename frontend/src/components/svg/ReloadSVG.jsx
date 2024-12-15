@@ -1,7 +1,7 @@
 const ReloadSVG = () => {
   return (
     <svg
-      className="h-5 w-5 text-slate-950"
+      className="h-5 w-5 text-slate-950 dark:text-slate-300"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 512 512"
     >

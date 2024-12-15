@@ -14,7 +14,7 @@ const AssistantChat = ({
   const baseClass = "self-start p-4 rounded-md";
   const contentClass =
     chat.type === "error"
-      ? "bg-red-200 border-2 border-red-400 text-slate-900 dark:text-slate-200"
+      ? "bg-red-200 dark:bg-gray-900 border-4 border-red-400 dark:border-red-600"
       : "bg-slate-100 dark:bg-gray-900";
 
   if (chat.id !== chatListLength) {
@@ -31,7 +31,7 @@ const AssistantChat = ({
     return (
       <div className={`${baseClass} ${contentClass}`}>
         <div className="prose prose-base flex items-center text-slate-900 dark:text-slate-200">
-          <AnimateSpinSVG className="-ml-1 mr-3 h-5 w-5 text-slate-950" />
+          <AnimateSpinSVG className="-ml-1 mr-3 h-5 w-5 text-slate-950 dark:text-slate-300" />
           {chat.content}
         </div>
       </div>

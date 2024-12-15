@@ -169,12 +169,14 @@ const ChatLayout = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    return new Promise((resolve) => {
-      resolve({
-      ok: false,
-      json: async () => ({ answer: "File upload failed" }),
-      });
-    });
+    return fetchWithToken(
+      `${golangBaseUrl}/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+      token
+    );
   }
 
   async function createNewChat(responseChat) {
@@ -229,7 +231,11 @@ const ChatLayout = () => {
   const reloadChat = () => {
     console.log("Reloading chat");
     if (chatHistory[chatHistory.length - 1].type === "error") {
+      if (chatHistory.length > 1 && chatHistory[chatHistory.length - 2].type === "file") {
+      setChatHistory((prevChat) => prevChat.slice(0, -2));
+      } else {
       setChatHistory((prevChat) => prevChat.slice(0, -1));
+      }
     }
   };
 
