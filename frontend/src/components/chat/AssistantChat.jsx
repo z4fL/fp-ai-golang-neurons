@@ -14,13 +14,13 @@ const AssistantChat = ({
   const baseClass = "self-start p-3 rounded-md";
   const contentClass =
     chat.type === "error"
-      ? "bg-red-200 border-2 border-red-400 text-slate-900"
-      : "bg-slate-100 text-slate-900";
+      ? "bg-red-200 border-2 border-red-400 text-slate-900 dark:text-slate-200"
+      : "bg-slate-100 dark:bg-gray-900";
 
   if (chat.id !== chatListLength) {
     return (
       <div className={`${baseClass} ${contentClass}`}>
-        <div className="prose prose-base">
+        <div className="prose prose-base text-slate-900 dark:text-slate-200">
           <Markdown>{chat.content}</Markdown>
         </div>
       </div>
@@ -30,7 +30,7 @@ const AssistantChat = ({
   if (chat.type === "loading") {
     return (
       <div className={`${baseClass} ${contentClass}`}>
-        <div className="prose prose-base flex items-center">
+        <div className="prose prose-base flex items-center text-slate-900 dark:text-slate-200">
           <AnimateSpinSVG className="-ml-1 mr-3 h-5 w-5 text-slate-950" />
           {chat.content}
         </div>
@@ -57,7 +57,7 @@ const AssistantChat = ({
 
   return (
     <div className={`${baseClass} ${contentClass}`}>
-      <div className="prose prose-base">
+      <div className="prose prose-base text-slate-900 dark:text-slate-200">
         {!isCompletedTyping ? (
           <>
             {displayResponse}

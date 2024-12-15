@@ -56,7 +56,7 @@ const Navbar = () => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 z-10 h-full w-64 bg-gray-300 text-gray-800 transform ${
+        className={`fixed top-0 left-0 z-10 h-full w-64 bg-gray-300 dark:bg-gray-950 text-gray-900 dark:text-gray-300 transform ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } transition-transform duration-300`}
       >
@@ -72,13 +72,13 @@ const Navbar = () => {
               {listChats.length ? (
                 listChats.map((chat) => (
                   <Link key={chat.chatID} to={`/chats/${chat.chatID}`}>
-                    <li className="px-4 py-2 hover:bg-lime-200">
+                    <li className="px-4 py-2 hover:bg-lime-200 dark:hover:bg-lime-300 dark:hover:text-gray-800">
                       <p className="cursor-pointer truncate">{chat.content}</p>
                     </li>
                   </Link>
                 ))
               ) : (
-                <li className="px-4 py-2 hover:bg-lime-200">
+                <li className="px-4 py-2 dark:text-gray-800">
                   <p className="cursor-pointer truncate">No Chat</p>
                 </li>
               )}

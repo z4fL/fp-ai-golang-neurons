@@ -236,7 +236,7 @@ const ChatLayout = () => {
   };
 
   return (
-    <div className="relative flex flex-col h-screen bg-gray-50 font-noto">
+    <div className="relative flex flex-col h-screen bg-gray-50 dark:bg-gray-800 font-noto">
       <Header />
       {chatId ? (
         <Outlet
