@@ -1,13 +1,11 @@
-import React, { useState, useRef } from "react";
-import { useEffect } from "react";
-import UserChat from "./Chat/UserChat";
-import AssistantChat from "./Chat/AssistantChat";
+import UserChat from "./chat/UserChat";
+import AssistantChat from "./chat/AssistantChat";
+import { useEffect, useRef, useState } from "react";
 
-const ChatList = ({
+const NewChat = ({
   chatList,
   setIsLoading,
   reloadChat,
-  isReload,
   setIsError,
 }) => {
   const [displayResponse, setDisplayResponse] = useState("");
@@ -21,11 +19,6 @@ const ChatList = ({
     const lastChat = chatList[chatList.length - 1];
 
     if (lastChat.role !== "assistant") return;
-    if (isReload) {
-      setDisplayResponse(lastChat.content);
-      setIsCompletedTyping(true);
-      return;
-    }
 
     setIsCompletedTyping(false);
 
@@ -108,4 +101,4 @@ const ChatList = ({
   );
 };
 
-export default ChatList;
+export default NewChat;

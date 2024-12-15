@@ -21,11 +21,16 @@ type Session struct {
 }
 
 type Chat struct {
-	ID          uint           `gorm:"primaryKey"`
+	gorm.Model
 	UserID      string         `gorm:"index;not null"`
 	ChatHistory datatypes.JSON `gorm:"type:jsonb"` // Simpan history sebagai JSONB
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+}
+
+type ChatHistoryEntry struct {
+	ID      int    `json:"id"`
+	Role    string `json:"role"`
+	Type    string `json:"type"`
+	Content any    `json:"content"`
 }
 
 type DBCredential struct {

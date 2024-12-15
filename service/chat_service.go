@@ -3,15 +3,18 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"sort"
+	"strings"
 
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/repository"
 )
 
 type ChatService interface {
-	CreateChat(userID string, chatHistory []map[string]any) error
-	AddMessage(userID string, newMessage []map[string]any) error
-	GetChatUser(userID string) ([]map[string]any, error)
+	CreateChat(userID string, chatHistory []map[string]any) (*model.Chat, error)
+	AddMessage(userID, chatID string, newMessage []map[string]any) error
+	GetChatUser(userID, chatID string) ([]map[string]any, error)
+	ListUserChats(userID string) ([]map[string]any, error)
 }
 
 type chatService struct {
@@ -22,8 +25,51 @@ func NewChatService(repo repository.ChatRepository) ChatService {
 	return &chatService{repo: repo}
 }
 
-func (s *chatService) GetChatUser(userID string) ([]map[string]any, error) {
-	chat, err := s.repo.GetChatByUserID(userID)
+func (s *chatService) ListUserChats(userID string) ([]map[string]any, error) {
+	chats, err := s.repo.ListUserChats(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []map[string]any
+	for _, chat := range chats {
+		var chatHistory []model.ChatHistoryEntry
+		if err := json.Unmarshal([]byte(chat.ChatHistory), &chatHistory); err != nil {
+			return nil, err
+		}
+
+		for _, entry := range chatHistory {
+			if entry.ID == 3 {
+				if contentStr, ok := entry.Content.(string); ok {
+					words := strings.Fields(contentStr)
+					if len(words) > 6 {
+						contentStr = strings.Join(words[:6], " ")
+					}
+					contentMap := map[string]any{
+						"chatID":  chat.ID,
+						"content": contentStr,
+					}
+					result = append(result, contentMap)
+				}
+				break
+			}
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, errors.New("no content with id 3 found")
+	}
+
+	// Sort the result by chatID
+	sort.Slice(result, func(i, j int) bool {
+		return result[i]["chatID"].(uint) > result[j]["chatID"].(uint)
+	})
+
+	return result, nil
+}
+
+func (s *chatService) GetChatUser(userID, chatID string) ([]map[string]any, error) {
+	chat, err := s.repo.GetChatUser(userID, chatID)
 	if err != nil {
 		return nil, errors.New("chat not found")
 	}
@@ -36,11 +82,11 @@ func (s *chatService) GetChatUser(userID string) ([]map[string]any, error) {
 	return chatHistory, nil
 }
 
-func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) error {
+func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) (*model.Chat, error) {
 	// Serialize chatHistory to JSON
 	chatHistoryJSON, err := json.Marshal(chatHistory)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	chat := &model.Chat{
@@ -48,12 +94,17 @@ func (s *chatService) CreateChat(userID string, chatHistory []map[string]any) er
 		ChatHistory: chatHistoryJSON,
 	}
 
-	return s.repo.AddChat(chat)
+	createdChat, err := s.repo.AddChat(chat)
+	if err != nil {
+		return nil, err
+	}
+
+	return createdChat, nil
 }
 
-func (s *chatService) AddMessage(userID string, newMessage []map[string]any) error {
+func (s *chatService) AddMessage(userID, chatID string, newMessage []map[string]any) error {
 	// Get existing chat
-	chat, err := s.repo.GetChatByUserID(userID)
+	chat, err := s.repo.GetChatUser(userID, chatID)
 	if err != nil {
 		return errors.New("chat not found")
 	}
@@ -64,8 +115,14 @@ func (s *chatService) AddMessage(userID string, newMessage []map[string]any) err
 		return err
 	}
 
-	// Append new message
-	chatHistory = append(chatHistory, newMessage...)
+	// Check if the last item in chatHistory is of type "error"
+	if len(chatHistory) > 0 && chatHistory[len(chatHistory)-1]["type"] == "error" {
+		// Replace the last item with the last item from newMessage
+		chatHistory[len(chatHistory)-1] = newMessage[len(newMessage)-1]
+	} else {
+		// Append new message
+		chatHistory = append(chatHistory, newMessage...)
+	}
 
 	// Serialize updated chat history
 	updatedChatHistory, err := json.Marshal(chatHistory)

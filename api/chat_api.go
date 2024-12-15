@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/z4fL/fp-ai-golang-neurons/middleware"
 	"github.com/z4fL/fp-ai-golang-neurons/model"
 	"github.com/z4fL/fp-ai-golang-neurons/utility"
@@ -100,15 +101,20 @@ func (h *API) CreateChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.chatService.CreateChat(userID, req.ChatHistory); err != nil {
+	chat, err := h.chatService.CreateChat(userID, req.ChatHistory)
+	if err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to create chat")
 		return
 	}
 
-	utility.JSONResponse(w, http.StatusCreated, "success", "Chat created successfully")
+	utility.JSONResponse(w, http.StatusCreated, "success", chat.ID)
 }
 
 func (h *API) AddMessage(w http.ResponseWriter, r *http.Request) {
+	// Ambil chatID dari URL parameter
+	vars := mux.Vars(r)
+	chatID := vars["chatId"]
+
 	// Ambil userID dari context
 	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
 	userID := strconv.FormatUint(uint64(userIDUint), 10)
@@ -122,19 +128,38 @@ func (h *API) AddMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.chatService.AddMessage(userID, req.ChatHistory); err != nil {
+	if err := h.chatService.AddMessage(userID, chatID, req.ChatHistory); err != nil {
 		utility.JSONResponse(w, http.StatusInternalServerError, "failed", "Failed to add chat")
 		return
 	}
 
 	utility.JSONResponse(w, http.StatusOK, "success", "Chat  successfully")
 }
+
 func (h *API) GetChat(w http.ResponseWriter, r *http.Request) {
+	// Ambil chatID dari URL parameter
+	vars := mux.Vars(r)
+	chatID := vars["chatId"]
+
 	// Ambil userID dari context
 	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
 	userID := strconv.FormatUint(uint64(userIDUint), 10)
 
-	chatHistory, err := h.chatService.GetChatUser(userID)
+	chatHistory, err := h.chatService.GetChatUser(userID, chatID)
+	if err != nil {
+		utility.JSONResponse(w, http.StatusNotFound, "failed", "Chat history not found")
+		return
+	}
+
+	utility.JSONResponse(w, http.StatusOK, "success", chatHistory)
+}
+
+func (h *API) ListUserChats(w http.ResponseWriter, r *http.Request) {
+	// Ambil userID dari context
+	userIDUint := r.Context().Value(middleware.UserIDKey).(uint)
+	userID := strconv.FormatUint(uint64(userIDUint), 10)
+
+	chatHistory, err := h.chatService.ListUserChats(userID)
 	if err != nil {
 		utility.JSONResponse(w, http.StatusNotFound, "failed", "Chat history not found")
 		return

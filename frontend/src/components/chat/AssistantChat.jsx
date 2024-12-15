@@ -1,13 +1,11 @@
-import React from "react";
 import Markdown from "react-markdown";
 import AnimateSpinSVG from "../svg/AnimateSpinSVG";
-import CursorSVG from "../svg/CursorSVG";
 import ErrorChat from "./ErrorChat";
 import ReloadSVG from "../svg/ReloadSVG";
+import CursorSVG from "../svg/CursorSVG";
 
 const AssistantChat = ({
   chat,
-  chatId,
   chatListLength,
   isCompletedTyping,
   displayResponse,
@@ -19,7 +17,7 @@ const AssistantChat = ({
       ? "bg-red-200 border-2 border-red-400 text-slate-900"
       : "bg-slate-100 text-slate-900";
 
-  if (chatId !== chatListLength - 1) {
+  if (chat.id !== chatListLength) {
     return (
       <div className={`${baseClass} ${contentClass}`}>
         <div className="prose prose-base">
@@ -29,7 +27,7 @@ const AssistantChat = ({
     );
   }
 
-  if (chat.content === "LOADING...") {
+  if (chat.type === "loading") {
     return (
       <div className={`${baseClass} ${contentClass}`}>
         <div className="prose prose-base flex items-center">
