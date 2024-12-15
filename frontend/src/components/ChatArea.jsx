@@ -76,7 +76,7 @@ const ChatArea = () => {
   return (
     <main
       ref={chatContainerRef}
-      className="flex-1 overflow-y-auto"
+      className="flex-1 overflow-y-auto scrollbar"
       onScroll={handleScroll}
       style={{ scrollbarGutter: "stable both-edges" }}
     >

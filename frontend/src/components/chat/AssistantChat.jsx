@@ -11,7 +11,7 @@ const AssistantChat = ({
   displayResponse,
   reloadChat,
 }) => {
-  const baseClass = "self-start p-3 rounded-md";
+  const baseClass = "self-start p-4 rounded-md";
   const contentClass =
     chat.type === "error"
       ? "bg-red-200 border-2 border-red-400 text-slate-900 dark:text-slate-200"

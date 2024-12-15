@@ -1,7 +1,7 @@
 import React from "react";
 
 const UserChat = ({ chat }) => (
-  <div className="self-end bg-gray-300 dark:bg-gray-950 text-gray-800 dark:text-gray-200 p-3 rounded-md">
+  <div className="self-end bg-gray-300 dark:bg-gray-950 text-gray-800 dark:text-gray-200 p-4 rounded-md">
     {chat.type === "text" ? (
       <p>{chat.content}</p>
     ) : (

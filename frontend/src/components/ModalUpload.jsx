@@ -62,7 +62,7 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
   return (
     isOpen && (
       <div className="fixed inset-0 bg-black bg-opacity-25 flex justify-center items-center z-50">
-        <div className="bg-white rounded-md shadow-xl w-full max-w-screen-md p-6 flex flex-col">
+        <div className="bg-white dark:bg-gray-700 rounded-md shadow-xl w-full max-w-screen-md p-6 flex flex-col">
           {/* Drag and Drop Area */}
           {!file && (
             <div
@@ -70,18 +70,20 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
               ${
                 isFocused
                   ? isFileValid
-                    ? "border-lime-500 bg-lime-100"
-                    : "border-red-500 bg-red-100"
-                  : "border-gray-400"
+                    ? "dark:text-gray-800 border-lime-500 dark:border-lime-400 bg-lime-100 dark:bg-transparent"
+                    : "border-red-500 bg-red-100 dark:bg-transparent"
+                  : "border-gray-400 dark:border-gray-900"
               }`}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
             >
-              <p className="text-gray-700">
+              <p className="text-gray-700 dark:text-gray-50">
                 Drag and drop your file here or click the button below
               </p>
-              <p className="mb-3 text-sm">Only .csv file can be uploaded</p>
+              <p className="mb-3 text-sm text-gray-600 dark:text-gray-200">
+                Only .csv file can be uploaded
+              </p>
               <input
                 type="file"
                 onChange={handleFileChange}
@@ -101,8 +103,8 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
 
           {/* Display selected file */}
           {file && (
-            <div className="mt-4 bg-gray-100 p-3 rounded-md flex justify-between items-center">
-              <div className="flex flex-col">
+            <div className="mt-4 bg-gray-100 dark:bg-gray-800 p-3 rounded-md flex justify-between items-center">
+              <div className="flex flex-col dark:text-gray-300">
                 <span className="text-ellipsis overflow-hidden">
                   {file.name}
                 </span>
@@ -110,7 +112,7 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
               </div>
               <button
                 onClick={handleRemoveFile}
-                className="text-red-500 hover:underline"
+                className="text-red-500 hover:text-red-400"
               >
                 Remove
               </button>
@@ -121,7 +123,7 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
           <div className="mt-6 flex justify-end space-x-4">
             <button
               onClick={handleUploadFile}
-              className={`px-4 py-2 bg-lime-600 text-white rounded-md hover:bg-lime-500 ${
+              className={`px-4 py-2 bg-lime-600 dark:hover:bg-lime-700 text-white rounded-md hover:bg-lime-500 ${
                 !file && "disabled:bg-lime-700"
               }`}
               disabled={file ? false : true}
@@ -133,7 +135,7 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
                 handleCloseModal();
                 setFile(null);
               }}
-              className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+              className="px-4 py-2 bg-gray-300 dark:bg-gray-400 text-gray-800 dark:text-gray-100 rounded-md hover:bg-gray-200 dark:hover:text-gray-700"
             >
               Cancel
             </button>
