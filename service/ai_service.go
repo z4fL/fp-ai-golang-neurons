@@ -135,7 +135,10 @@ func (s *aiService) ChatWithAI(context, query, token string) (string, error) {
 	requestData := &model.PhiRequest{
 		Model: "microsoft/Phi-3.5-mini-instruct",
 		Messages: append([]model.Message{
-			{Role: "system", Content: "You are an intelligent assistant designed to help users optimize energy consumption in their smart homes. You must respond clearly, concisely, and in a user-friendly manner. If the user asks for recommendations, base your advice on energy-saving strategies while considering the data insights."},
+			{
+				Role:    "system",
+				Content: "You are an intelligent assistant designed to help users optimize energy consumption in their smart homes. You must respond clearly, concisely, and in a user-friendly manner. If the user asks for recommendations, base your advice on energy-saving strategies while considering the data insights.",
+			},
 		}, messages...),
 		Temperature: 0.2,
 		MaxTokens:   500,

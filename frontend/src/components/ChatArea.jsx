@@ -4,8 +4,14 @@ import UserChat from "./chat/UserChat";
 import AssistantChat from "./chat/AssistantChat";
 
 const ChatArea = () => {
-  const { chatHistory, setIsLoading, setIsError, reloadChat } =
-    useOutletContext();
+  const {
+    chatHistory,
+    setIsLoading,
+    setIsError,
+    reloadChat,
+    lastIdChat,
+    isReload,
+  } = useOutletContext();
 
   const location = useLocation();
 
@@ -19,6 +25,7 @@ const ChatArea = () => {
   useEffect(() => {
     const fromNavigate = location.state?.fromNavigate;
     window.history.replaceState({}, "");
+
     if (chatHistory.some((chat) => chat.type === "error")) {
       setIsError(true);
     } else {
@@ -26,15 +33,14 @@ const ChatArea = () => {
     }
 
     const lastChat = chatHistory.at(-1);
-
-    if (lastChat.role !== "assistant") return;
-    if (!fromNavigate) {
+    if (!fromNavigate && isReload) {
       setDisplayResponse(lastChat.content);
       setIsCompletedTyping(true);
+
       return;
     }
-
-    console.log("isfromNavigate: ", fromNavigate);
+    console.log("didnt skip animation typing");
+    console.log("isReload: ", isReload);
 
     setIsCompletedTyping(false);
 
@@ -46,18 +52,15 @@ const ChatArea = () => {
       i++;
 
       if (i > responseAssistant.length) {
-        setIsLoading(() => {
-          console.log("ChatArea isLoading", false);
-          return false;
-        })
+        setIsLoading(false);
 
         clearInterval(intervalId);
         setIsCompletedTyping(true);
       }
-    }, 5);
+    }, 1);
 
     return () => clearInterval(intervalId);
-  }, [chatHistory, location]);
+  }, [chatHistory, location, isReload]);
 
   useEffect(() => {
     if (isAutoScrollEnabled) {

@@ -25,10 +25,7 @@ const NewChat = ({ chatList, setIsLoading, reloadChat, setIsError }) => {
       i++;
 
       if (i > responseAssistant.length) {
-        setIsLoading(() => {
-          console.log("NewChat isLoading:", false);
-          return false;
-        });
+        setIsLoading(false);
 
         clearInterval(intervalId);
         setIsCompletedTyping(true);

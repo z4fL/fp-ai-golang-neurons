@@ -27,6 +27,7 @@ const ChatLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [errorType, setErrorType] = useState("");
+  const [isReload, setIsReload] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -46,6 +47,7 @@ const ChatLayout = () => {
 
           const data = await res.json();
           setChatHistory(data.answer);
+          setIsReload(true);
 
           setErrorType("");
           setIsLoading(false);
@@ -71,6 +73,7 @@ const ChatLayout = () => {
 
   const getResponse = (type) => {
     if (type === "file" && !file) return;
+    setIsReload(false);
 
     const newChat = {
       id: chatHistory.length + 1,
@@ -91,7 +94,7 @@ const ChatLayout = () => {
     try {
       const responseChat = await fetchChatResponse();
       console.log("errorType :", errorType);
-      
+
       // remove LOADING... chat and add responseChat
       setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
 
@@ -134,8 +137,6 @@ const ChatLayout = () => {
   };
 
   useEffect(() => {
-    console.log(chatHistory.length);
-
     const lastChat = chatHistory.at(-1); // last element
     if (lastChat.role === "user") {
       setChatHistory((prevChat) => [
@@ -271,6 +272,7 @@ const ChatLayout = () => {
 
   const reloadChat = () => {
     console.log("Reloading chat");
+    setIsReload(false);
     if (chatHistory[chatHistory.length - 1].type === "error") {
       if (
         chatHistory.length > 1 &&
@@ -289,7 +291,13 @@ const ChatLayout = () => {
       <Header />
       {chatId ? (
         <Outlet
-          context={{ chatHistory, setIsLoading, setIsError, reloadChat }}
+          context={{
+            chatHistory,
+            setIsLoading,
+            setIsError,
+            reloadChat,
+            isReload,
+          }}
         />
       ) : (
         <NewChat
