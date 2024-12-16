@@ -3,6 +3,7 @@ package utility
 import (
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -23,6 +24,8 @@ func (tp *TapasProcessor) CountUniqueCells() (int, string) {
 	for value := range result {
 		uniqueValue = append(uniqueValue, value)
 	}
+
+	sort.Strings(uniqueValue) // Sort the unique values alphabetically
 
 	var builder strings.Builder
 	for i, value := range uniqueValue {
