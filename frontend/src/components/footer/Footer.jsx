@@ -43,7 +43,7 @@ const Footer = ({
             isLoading && "disabled:bg-lime-700"
           }`}
           onClick={() => getResponse()}
-          disabled={!query.trim() || isLoading || isError || errorType !== "text"}
+          disabled={!query.trim() || isLoading || isError || errorType === "text"}
         >
           <SendSVG />
         </button>

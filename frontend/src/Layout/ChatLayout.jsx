@@ -90,11 +90,12 @@ const ChatLayout = () => {
     });
     try {
       const responseChat = await fetchChatResponse();
-
+      console.log("errorType :", errorType);
+      
       // remove LOADING... chat and add responseChat
       setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
 
-      if (chatHistory.length <= 3 && errorType !== "") {
+      if (chatHistory.length <= 3 && errorType === "") {
         console.log("createNewChat");
 
         await createNewChat(responseChat);
@@ -179,26 +180,17 @@ const ChatLayout = () => {
       ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    const res = await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          ok: false,
-          json: async () => ({ answer: "Request timed out" }),
-        });
-      }, 3000);
-    });
-
-    // const res = await fetchWithToken(
-    //   `${golangBaseUrl}/chat-with-ai`,
-    //   {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify(payload),
-    //   },
-    //   token
-    // );
+    const res = await fetchWithToken(
+      `${golangBaseUrl}/chat-with-ai`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      },
+      token
+    );
 
     if (!res.ok) {
       setErrorType("text");
