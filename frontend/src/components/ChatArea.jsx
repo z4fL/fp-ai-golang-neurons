@@ -25,7 +25,7 @@ const ChatArea = () => {
       setIsError(false);
     }
 
-    const lastChat = chatHistory[chatHistory.length - 1];
+    const lastChat = chatHistory.at(-1);
 
     if (lastChat.role !== "assistant") return;
     if (!fromNavigate) {
@@ -34,7 +34,7 @@ const ChatArea = () => {
       return;
     }
 
-    console.log(fromNavigate);
+    console.log("isfromNavigate: ", fromNavigate);
 
     setIsCompletedTyping(false);
 
@@ -46,7 +46,10 @@ const ChatArea = () => {
       i++;
 
       if (i > responseAssistant.length) {
-        setIsLoading(false);
+        setIsLoading(() => {
+          console.log("ChatArea isLoading", false);
+          return false;
+        })
 
         clearInterval(intervalId);
         setIsCompletedTyping(true);

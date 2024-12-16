@@ -8,6 +8,7 @@ const Footer = ({
   getResponse,
   isLoading,
   isError,
+  errorType
 }) => {
   return (
     <footer className="w-full max-w-screen-md p-4 mb-4 mx-auto bg-gray-200 dark:bg-gray-700 rounded-lg flex justify-center">
@@ -30,7 +31,7 @@ const Footer = ({
           placeholder="Type here..."
           className="flex-1 p-2 dark:text-white dark:caret-white dark:bg-slate-600 border-0 rounded-md focus:outline-none focus:ring-2 focus:ring-lime-500 dark:focus:ring-lime-600 placeholder:text-slate-900 dark:placeholder:text-slate-300"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && query.trim() && !isLoading && !isError) {
+            if (e.key === "Enter" && query.trim() && !isLoading && !isError && errorType !== "text") {
               getResponse();
             }
           }}
@@ -42,7 +43,7 @@ const Footer = ({
             isLoading && "disabled:bg-lime-700"
           }`}
           onClick={() => getResponse()}
-          disabled={!query.trim() || isLoading || isError}
+          disabled={!query.trim() || isLoading || isError || errorType !== "text"}
         >
           <SendSVG />
         </button>

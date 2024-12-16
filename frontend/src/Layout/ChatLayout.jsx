@@ -12,6 +12,24 @@ const ChatLayout = () => {
   const navigate = useNavigate();
   const { chatId } = useParams();
 
+  const initChat = {
+    id: 1,
+    role: "assistant",
+    content: "Hello, how can I help you?",
+    type: "text",
+  };
+
+  const [chatHistory, setChatHistory] = useState([initChat]);
+
+  const [query, setQuery] = useState("");
+  const [file, setFile] = useState(null);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [errorType, setErrorType] = useState("");
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   useEffect(() => {
     if (chatId) {
       const fetchChat = async () => {
@@ -28,6 +46,12 @@ const ChatLayout = () => {
 
           const data = await res.json();
           setChatHistory(data.answer);
+
+          setErrorType("");
+          setIsLoading(false);
+          setIsError(false);
+          setQuery("");
+          setFile(null);
         } catch (error) {
           console.error(error);
           setIsError(true);
@@ -37,24 +61,13 @@ const ChatLayout = () => {
       fetchChat();
     } else {
       setChatHistory([initChat]);
+      setErrorType("");
+      setIsLoading(false);
+      setIsError(false);
+      setQuery("");
+      setFile(null);
     }
   }, [chatId]);
-
-  const initChat = {
-    id: 1,
-    role: "assistant",
-    content: "Hello, how can I help you?",
-    type: "text",
-  };
-  const [chatHistory, setChatHistory] = useState([initChat]);
-
-  const [query, setQuery] = useState("");
-  const [file, setFile] = useState(null);
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getResponse = (type) => {
     if (type === "file" && !file) return;
@@ -71,21 +84,29 @@ const ChatLayout = () => {
   };
 
   const handleResponse = async () => {
-    setIsLoading(true);
+    setIsLoading(() => {
+      console.log("ChatLayout isLoading:", true);
+      return true;
+    });
     try {
       const responseChat = await fetchChatResponse();
 
       // remove LOADING... chat and add responseChat
       setChatHistory((prevChat) => [...prevChat.slice(0, -1), responseChat]);
 
-      if (chatHistory.length <= 3 && !isError) {
+      if (chatHistory.length <= 3 && errorType !== "") {
+        console.log("createNewChat");
+
         await createNewChat(responseChat);
       } else {
+        console.log("updateChat");
         await updateChat(responseChat);
       }
 
       setIsError(false);
     } catch (error) {
+      console.log(error);
+
       const errorChat = {
         id: chatHistory.length + 1,
         role: "assistant",
@@ -97,8 +118,12 @@ const ChatLayout = () => {
       setChatHistory((prevChat) => [...prevChat.slice(0, -1), errorChat]);
 
       if (chatHistory.length <= 3) {
-        await createNewChat(errorChat);
+        if (!error) {
+          console.log("createNewChat");
+          await createNewChat(errorChat);
+        }
       } else {
+        console.log("updateChat");
         await updateChat(errorChat);
       }
 
@@ -108,8 +133,10 @@ const ChatLayout = () => {
   };
 
   useEffect(() => {
+    console.log(chatHistory.length);
+
     const lastChat = chatHistory.at(-1); // last element
-    if (chatHistory.length && lastChat.role === "user") {
+    if (lastChat.role === "user") {
       setChatHistory((prevChat) => [
         ...prevChat,
         {
@@ -131,8 +158,8 @@ const ChatLayout = () => {
 
     const data = await res.json();
 
-    if (!res.ok) throw new Error(data.answer);
     if (file) setFile(null); // remove file
+    if (!res.ok) throw new Error(data.answer);
 
     return {
       id: chatHistory.length + 1,
@@ -142,7 +169,7 @@ const ChatLayout = () => {
     };
   }
 
-  function handleChat() {
+  async function handleChat() {
     const lastChat = chatHistory[chatHistory.length - 1];
     const previousChat = chatHistory[chatHistory.length - 2];
 
@@ -152,24 +179,39 @@ const ChatLayout = () => {
       ...(previousChat.id !== 1 && { prevChat: previousChat.content }),
     };
 
-    return fetchWithToken(
-      `${golangBaseUrl}/chat-with-ai`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      },
-      token
-    );
+    const res = await new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          ok: false,
+          json: async () => ({ answer: "Request timed out" }),
+        });
+      }, 3000);
+    });
+
+    // const res = await fetchWithToken(
+    //   `${golangBaseUrl}/chat-with-ai`,
+    //   {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify(payload),
+    //   },
+    //   token
+    // );
+
+    if (!res.ok) {
+      setErrorType("text");
+    }
+
+    return res;
   }
 
-  function handleUploadFile() {
+  async function handleUploadFile() {
     const formData = new FormData();
     formData.append("file", file);
 
-    return fetchWithToken(
+    const res = await fetchWithToken(
       `${golangBaseUrl}/upload`,
       {
         method: "POST",
@@ -177,6 +219,12 @@ const ChatLayout = () => {
       },
       token
     );
+
+    if (!res.ok) {
+      setErrorType("file");
+    }
+
+    return res;
   }
 
   async function createNewChat(responseChat) {
@@ -197,6 +245,7 @@ const ChatLayout = () => {
     if (!res.ok) {
       console.log("Failed to create chat");
     } else {
+      console.log("Sucess to create chat");
       const data = await res.json();
       if (!file) setFile(null); // remove file
       setIsError(false);
@@ -222,19 +271,23 @@ const ChatLayout = () => {
     );
 
     if (!res.ok) {
-      console.log("Failed to add message");
+      console.log("Failed to add chat");
     } else {
-      console.log("Message added successfully");
+      console.log("Chat added successfully");
     }
   }
 
   const reloadChat = () => {
     console.log("Reloading chat");
     if (chatHistory[chatHistory.length - 1].type === "error") {
-      if (chatHistory.length > 1 && chatHistory[chatHistory.length - 2].type === "file") {
-      setChatHistory((prevChat) => prevChat.slice(0, -2));
+      if (
+        chatHistory.length > 1 &&
+        chatHistory[chatHistory.length - 2].type === "file"
+      ) {
+        setChatHistory((prevChat) => prevChat.slice(0, -2));
+        setIsError(false);
       } else {
-      setChatHistory((prevChat) => prevChat.slice(0, -1));
+        setChatHistory((prevChat) => prevChat.slice(0, -1));
       }
     }
   };
@@ -262,6 +315,7 @@ const ChatLayout = () => {
         getResponse={() => getResponse("text")}
         isLoading={isLoading}
         isError={isError}
+        errorType={errorType}
       />
       <ModalUpload
         isOpen={isModalOpen}

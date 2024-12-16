@@ -6,7 +6,15 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    setFile(selectedFile);
+    if (selectedFile) {
+      const fileExtension = selectedFile.name.split(".").pop();
+      if (fileExtension === "csv") {
+        setIsFileValid(true);
+        setFile(selectedFile);
+      } else {
+        setIsFileValid(false);
+      }
+    }
   };
 
   const handleRemoveFile = () => {
@@ -15,14 +23,18 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    const draggedFile = e.dataTransfer.items[0];
+    if (e.dataTransfer.items.length > 0) {
+      const draggedFile = e.dataTransfer.items[0];
 
-    if (
-      draggedFile &&
-      draggedFile.kind === "file" &&
-      draggedFile.type === "text/csv"
-    ) {
-      setIsFileValid(true);
+      if (
+        draggedFile &&
+        draggedFile.kind === "file" &&
+        draggedFile.type === "text/csv"
+      ) {
+        setIsFileValid(true);
+      } else {
+        setIsFileValid(false);
+      }
     } else {
       setIsFileValid(false);
     }
@@ -39,13 +51,17 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
 
-    if (droppedFile && droppedFile.type === "text/csv") {
+    if (
+      droppedFile &&
+      droppedFile.type === "text/csv" &&
+      droppedFile.name.split(".").pop() === "csv"
+    ) {
+      setIsFileValid(true); // Reset validasi
       setFile(droppedFile);
     } else {
-      console.log("only .csv");
+      setIsFileValid(false); // Reset validasi
     }
 
-    setIsFileValid(true); // Reset validasi
     setIsFocused(false); // Hapus fokus setelah file di-drop
   };
 
@@ -81,7 +97,13 @@ const ModalUpload = ({ isOpen, onClose, getResponse, file, setFile }) => {
               <p className="text-gray-700 dark:text-gray-50">
                 Drag and drop your file here or click the button below
               </p>
-              <p className="mb-3 text-sm text-gray-600 dark:text-gray-200">
+              <p
+                className={`mb-3 text-sm ${
+                  !isFileValid
+                    ? "text-red-400"
+                    : "text-gray-600 dark:text-gray-200"
+                }`}
+              >
                 Only .csv file can be uploaded
               </p>
               <input

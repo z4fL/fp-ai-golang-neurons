@@ -40,7 +40,7 @@ const AssistantChat = ({
 
   if (chat.type === "error") {
     return (
-      <div className={`flex items-center p-3`}>
+      <div className={`flex items-center`}>
         <ErrorChat
           baseClass={`${baseClass} ${contentClass}`}
           content={chat.content}

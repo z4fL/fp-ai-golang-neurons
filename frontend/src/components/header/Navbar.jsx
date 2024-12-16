@@ -78,7 +78,7 @@ const Navbar = () => {
                   </Link>
                 ))
               ) : (
-                <li className="px-4 py-2 dark:text-gray-800">
+                <li className="px-4 py-2 dark:text-gray-300">
                   <p className="cursor-pointer truncate">No Chat</p>
                 </li>
               )}
